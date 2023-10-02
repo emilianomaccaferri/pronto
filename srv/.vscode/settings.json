@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "*.twig": "html",
+        "socket.h": "c",
+        "http_response.h": "c",
+        "handler.h": "c",
+        "server.h": "c",
+        "error_t.h": "c",
+        "cerrno": "c",
+        "system_error": "c",
+        "connection_context.h": "c"
+    }
+}
