@@ -17,9 +17,17 @@
 #include <assert.h>
 #include <stdlib.h>
 
-http_response* build_response(connection_context* context){
+http_response* build_response(
+    connection_context* context,
+    short is_bad_request
+){
 
-    http_response* res = http_response_create(200, "Content-Type: text/html; charset=utf-8\n", "<h1>Hello from <i>pronto</i></h1>", context->fd);
+    http_response* res;
+    if(is_bad_request){
+        res = http_response_bad_request(context->fd);
+    }else{
+        res = http_response_create(200, "Content-Type: text/html; charset=utf-8\n", "<h1>Hello from <i>pronto</i></h1>", context->fd);
+    }
 
     /*
         we are ready to stream the response to the socket! 
@@ -129,6 +137,7 @@ void *handler_process_request(void *h){
                     continue;
                 }
                 
+                int is_bad_request = 0; // this flag is set if the request contains invalid json
                 http_request* req = malloc(sizeof(http_request));
                 http_request_init(
                     req,
@@ -146,16 +155,20 @@ void *handler_process_request(void *h){
                 ){
                     // body starts at req_buffer + parse_result
                     // https://github.com/h2o/picohttpparser/issues/59
-                    req->body_len = (strlen(ctx->data) - parse_result);
+                    char* parse_end;
+                    req->body_len = (strlen(ctx->data) - parse_result) + 1;
                     req->body = malloc(sizeof(char) * req->body_len); // null-terminate
                     bzero((void*) req->body, req->body_len);
                     strncpy((char*) req->body, ctx->data + parse_result, req->body_len);
-                    req->json_body = cJSON_ParseWithLength(req->body, req->body_len);
-                    /*char* json = cJSON_Print(req->json_body);
-                    printf("%s\n", json);*/
+                    req->json_body = cJSON_ParseWithLengthOpts(req->body, req->body_len, &parse_end, 1);
+                    printf("%s\n", parse_end);
+                    // https://github.com/DaveGamble/cJSON#thread-safety
+                    if(strcmp(parse_end, "}") != 0){ // } is the pointer to the end of the json body
+                        is_bad_request = 1;
+                    }
                 }
 
-                http_response *res = build_response(ctx);
+                http_response *res = build_response(ctx, is_bad_request);
                 // http_request_destroy(req);
 
                 struct epoll_event add_write_event;
@@ -201,6 +214,7 @@ void *handler_process_request(void *h){
                     streamed_response->full_length,
                     0
                 );
+                printf("%s\n", streamed_response->stringified);
                 if (written_bytes >= 0){
                     streamed_response->stream_ptr += written_bytes; // here we update our pointer!
                     if (streamed_response->stream_ptr >= streamed_response->full_length){

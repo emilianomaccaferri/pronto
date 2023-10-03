@@ -36,7 +36,7 @@ int count_lines(char* bytes, size_t byte_len){
         next = strchr(next + 1, '\n');
     }
 
-    free(copy);
+    // free(copy);
     return count;
 
 }

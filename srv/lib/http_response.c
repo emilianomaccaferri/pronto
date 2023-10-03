@@ -107,34 +107,34 @@ char* stringify_status(int status){
 http_response* http_response_bad_request(int socket_fd){
     
     return 
-        http_response_create(400, NULL, "<html><h1>400 - Bad Request </h1></html>", socket_fd);
+        http_response_create(400, "", "<html><h1>400 - Bad Request </h1></html>", socket_fd);
     
 }
 
 http_response* http_response_filename_too_long(int socket_fd){
     
     return 
-        http_response_create(413, NULL, "<html><h1>413 - Request filename is too long </h1></html>", socket_fd);
+        http_response_create(413, "", "<html><h1>413 - Request filename is too long </h1></html>", socket_fd);
     
 }
 
 http_response* http_response_uninmplemented_method(int socket_fd){
     
     return 
-        http_response_create(501, NULL, "<html><h1>501 - Not Implemented </h1></html>", socket_fd);
+        http_response_create(501, "", "<html><h1>501 - Not Implemented </h1></html>", socket_fd);
     
 }
 
 http_response* http_response_internal_server_error(int socket_fd){
     
     return 
-        http_response_create(500, NULL, "<html><h1>500 - Internal Server Error </h1></html>", socket_fd);
+        http_response_create(500, "", "<html><h1>500 - Internal Server Error </h1></html>", socket_fd);
     
 }
 
 http_response* http_response_not_found(int socket_fd){
     
     return 
-        http_response_create(404, NULL, "<html><h1>404 - Not Found </h1></html>", socket_fd);
+        http_response_create(404, "", "<html><h1>404 - Not Found </h1></html>", socket_fd);
     
 }
