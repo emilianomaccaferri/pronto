@@ -3,6 +3,11 @@
 #include <string.h>
 #include "h/connection_context.h"
 
+void context_destroy(connection_context* context){
+    // free(context->data);
+    free(context);
+}
+
 void context_init(connection_context* context, unsigned int request_size){
 
     context->data = malloc(sizeof(char) * request_size);
@@ -13,7 +18,7 @@ void context_init(connection_context* context, unsigned int request_size){
     bzero(context->data, request_size);
 
 }
-void write_to_context(connection_context* context, char* data, size_t received_bytes){
+void context_write(connection_context* context, char* data, size_t received_bytes){
     
     void* next_ptr;
     if(received_bytes > context->buf_size){

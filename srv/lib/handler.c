@@ -19,9 +19,7 @@
 
 http_response* build_response(connection_context* context){
 
-    http_response* res;
-
-    res = http_response_create(200, "Content-Type: text/html; charset=utf-8\n", "<h1>Hello from <i>pronto</i></h1>", context->fd);
+    http_response* res = http_response_create(200, "Content-Type: text/html; charset=utf-8\n", "<h1>Hello from <i>pronto</i></h1>", context->fd);
 
     /*
         we are ready to stream the response to the socket! 
@@ -29,7 +27,7 @@ http_response* build_response(connection_context* context){
         so that when we are back in the epoll loop we have a valid file descriptor to stream to 
         (we can't use both the "fd" and the "ptr" attributes when using epolls)
     */
-
+    // context_destroy(context);
     return res;
 
 }
@@ -77,7 +75,7 @@ void *handler_process_request(void *h){
                     }
                     prevbuflen = buflen;
                     buflen += read_bytes;
-                    write_to_context(ctx, buf, read_bytes);
+                    context_write(ctx, buf, read_bytes);
                     if(read_bytes <= 0){
                         broken_request = 1;
                         break; // refactor in while
@@ -108,13 +106,18 @@ void *handler_process_request(void *h){
                     }
                     if(parse_result != -2){
                         printf("BUG_ON: parse_result is not -2 while request is being processed");
+                        broken_request = 1;
+                        break;
                     }
                     
                 }
 
+                ctx->data[ctx->length - 1] = 0;
+
                 if(broken_request == 1){
                     epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_DEL, current_handler->events[i].data.fd, NULL);
                     close(current_handler->events[i].data.fd);
+                    // context_destroy(ctx);
                     continue; // skip the request
                 }
 
@@ -122,6 +125,7 @@ void *handler_process_request(void *h){
                     // send 413
                     epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_DEL, current_handler->events[i].data.fd, NULL);
                     close(current_handler->events[i].data.fd);
+                    // context_destroy(ctx);
                     continue;
                 }
                 
@@ -139,6 +143,7 @@ void *handler_process_request(void *h){
                 printf("got request: %s %s\n", req->method, req->path);
 
                 http_response *res = build_response(ctx);
+                // http_request_destroy(req);
 
                 struct epoll_event add_write_event;
                 add_write_event.events = EPOLLOUT;
@@ -158,6 +163,8 @@ void *handler_process_request(void *h){
                 if (epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_MOD, current_handler->events[i].data.fd, &add_write_event) < 0){
                     perror("cannot set epoll descriptor ready for writing\n");
                     close(current_handler->events[i].data.fd);
+                    // http_response_destroy(res);
+                    // context_destroy(ctx);
                     continue;
                 }
 
@@ -187,12 +194,11 @@ void *handler_process_request(void *h){
                         /*
                             we wrote everything, so we need to close the connection (only HTTP/1.1)
                         */
-
                         if (epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_DEL, streamed_response->socket, NULL) < 0){
                             perror("cannot close epoll fd\n");
                         }
-                        printf("response: %s\n", streamed_response->stringified);
                         close(streamed_response->socket);
+                        // http_response_destroy(streamed_response);
                     }
                 }else if (written_bytes == -1){
                     if (errno == EAGAIN || errno == EWOULDBLOCK){
@@ -200,6 +206,7 @@ void *handler_process_request(void *h){
                         continue;
                     }
                     else{
+                        // http_response_destroy(streamed_response);
                         perror("send failed\n");
                     }
                 }

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.twig": "html",
+        "connection_context.h": "c",
+        "string.h": "c"
+    }
+}

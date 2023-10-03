@@ -4,9 +4,16 @@
 #include <stdio.h>
 #include <time.h>
 
-char* default_headers = "Connection: close\nServer: epolly/0.0.1\n";
+char* default_headers = "Connection: close\nServer: pronto-srv/0.0.1\n";
 
 static char* stringify_status(int status);
+
+void http_response_destroy(http_response* res){
+    // free(res->body);
+    // free(res->headers);
+    // free(res->stringified);
+    free(res);
+}
 
 http_response* http_response_create(int status, char* headers, char* body, int socket_fd){
 
@@ -47,11 +54,13 @@ http_response* http_response_create(int status, char* headers, char* body, int s
     strncpy(res->headers, default_headers, strlen(default_headers));
     strncpy(res->headers, res->date_header, res->date_header_length);
     strncat(res->headers, content_length_header, content_length_header_length);
+    strncpy(res->body, body, res->content_length);
 
     if(headers) 
         strncpy(res->headers, headers, res->headers_length);
     
-    strncpy(res->body, body, res->content_length);
+    res->headers[res->headers_length] = 0;
+    res->body[res->content_length] = 0;
 
     res->stringified = http_response_stringify(res);
     res->full_length = strlen(res->stringified);
