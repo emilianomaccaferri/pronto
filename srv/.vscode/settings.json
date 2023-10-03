@@ -8,6 +8,8 @@
         "error_t.h": "c",
         "cerrno": "c",
         "system_error": "c",
-        "connection_context.h": "c"
+        "connection_context.h": "c",
+        "strings.h": "c",
+        "picohttpparser.h": "c"
     }
 }

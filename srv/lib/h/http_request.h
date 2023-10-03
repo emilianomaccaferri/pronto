@@ -15,4 +15,11 @@ typedef struct {
     size_t body_len;
 } http_request;
 
-void http_request_empty(http_request* init);
+void http_request_init(http_request* init,
+        char* method,
+        size_t method_len, // non-terminated
+        char* path,
+        size_t path_len, // non-terminated
+        struct phr_header* headers,
+        int num_headers
+    );

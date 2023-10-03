@@ -15,48 +15,23 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
 
-http_response *build_response(/*parsed_http_request*/ int fd){
+http_response* build_response(connection_context* context){
 
-    // http_request* req = malloc(sizeof(http_request));
-    http_response *res;
+    http_response* res;
 
-    // based on the parsed http request we make our decisions
+    res = http_response_create(200, "Content-Type: text/html; charset=utf-8\n", "<h1>Hello from <i>pronto</i></h1>", context->fd);
+
+    /*
+        we are ready to stream the response to the socket! 
+        to actually stream something we need to save the socket's fd (check comment 1 in h/http_response.h)
+        so that when we are back in the epoll loop we have a valid file descriptor to stream to 
+        (we can't use both the "fd" and the "ptr" attributes when using epolls)
+    */
 
     return res;
-}
 
-void parse_request(char* data, http_request* req){
-    struct phr_header headers[100];
-    size_t buf_length_until_now = 0, 
-        previous_buf_length = 0, 
-        method_len, 
-        path_len, 
-        num_headers;
-    const char *method, *path;
-    int minor_version;
-
-                    
-                    int parse_result = phr_parse_request(
-                        data,
-                        buf_length_until_now,
-                        &method,
-                        &method_len,
-                        &path,
-                        &path_len,
-                        &minor_version,
-                        headers,
-                        &num_headers,
-                        previous_buf_length
-                    );
-
-                    if(parse_result > 0)
-                        break; // the request has been fully parsed
-                    else if(parse_result == -1){
-                        broken_request = 1;
-                        break;
-                    }
-                    assert(parse_result == -2); // parse_result MUST be -2 at this point
 }
 
 void *handler_process_request(void *h){
@@ -75,43 +50,66 @@ void *handler_process_request(void *h){
             uint32_t events = current_handler->events[i].events;
 
             if (events == EPOLLIN){
-                int fd = current_handler->events[i].data.fd;
-                int parse_result, minor_version;
-                size_t received_bytes;
-                
-                int broken_request = 0, request_size = 0, request_too_large = 0;
+               
+                int broken_request = 0, request_too_large = 0;
+                size_t request_size = 0;
 
                 connection_context* ctx = malloc(sizeof(connection_context));
                 context_init(ctx, current_handler->request_buffer_size);
                 ctx->fd = current_handler->events[i].data.fd;
 
-                while(
-                    (received_bytes = recv(
-                        fd, 
-                        current_handler->request_buffer, 
-                        current_handler->request_buffer_size, 
-                        O_NONBLOCK)
-                    ) > 0
-                ){ // nonblocking read from epoll
+                char buf[256];
+                char *method, *path;
+                int parse_result, minor_version;
+                struct phr_header headers[100];
+                size_t buflen = 0, prevbuflen = 0, method_len, path_len, num_headers;
+                ssize_t read_bytes;
 
-                    if(errno == EAGAIN || errno == EWOULDBLOCK){
-                        continue; // retry reading!
-                    }
-
-                    if(received_bytes <= 0){
+                while(1){
+                    bzero(buf, sizeof(buf));
+                    while ((read_bytes = read(ctx->fd, buf, sizeof(buf))) == -1 && errno == EINTR);
+                    if(errno == EWOULDBLOCK || errno == EAGAIN){
                         broken_request = 1;
-                        break;
+                        break; // we suppose the caller hung up 
+                        // in a more forgiving environment, this would mean 
+                        // that the socket isn't ready yet, we should 
+                        // queue the descriptor for later (rearm epoll and wait for it to signal stuff)
                     }
-
-                    write_to_context(ctx, current_handler->request_buffer, received_bytes);
-                    bzero(current_handler->request_buffer, current_handler->request_buffer_size);
-                    request_size += received_bytes;
-
+                    prevbuflen = buflen;
+                    buflen += read_bytes;
+                    write_to_context(ctx, buf, read_bytes);
+                    if(read_bytes <= 0){
+                        broken_request = 1;
+                        break; // refactor in while
+                    }
+                    request_size += read_bytes;
                     if(request_size > current_handler->max_request_size){
                         request_too_large = 1;
                         break;
                     }
-
+                    num_headers = sizeof(headers) / sizeof(headers[0]);
+                    parse_result = phr_parse_request(
+                        ctx->data, 
+                        buflen, 
+                        (const char **) &method, 
+                        &method_len, 
+                        (const char **) &path, 
+                        &path_len,
+                        &minor_version, 
+                        headers, 
+                        &num_headers, 
+                        prevbuflen
+                    );
+                    if (parse_result > 0)
+                        break; // request parsed correctly
+                    else if (parse_result == -1){
+                        broken_request = 1;
+                        break;
+                    }
+                    if(parse_result != -2){
+                        printf("BUG_ON: parse_result is not -2 while request is being processed");
+                    }
+                    
                 }
 
                 if(broken_request == 1){
@@ -126,97 +124,43 @@ void *handler_process_request(void *h){
                     close(current_handler->events[i].data.fd);
                     continue;
                 }
-
-                if (errno == EAGAIN || errno == EWOULDBLOCK){ // we have drained the request's fd
-                    
-                    parse_request(ctx->data);
-
-                    http_request* req = malloc(sizeof(http_request));
-                    http_request_empty(req); // create an empty request object to fill with data    
-
-                    req->method = method;
-                    req->path = path;
-                    req->headers = headers;
-                    req->method_len = method_len;
-                    req->path_len = path_len;
-                    req->num_headers = num_headers;
-                    printf("%s", req->path);
-
-                    // printf("%s\n", req->method);
-                    /* 
-                    /* printf("%d", req->num_headers);
-                    
-
-                    /*char b[32368], *method, *path;
-                    int pret, minor_version;
-                    struct phr_header headers[100];
-                    size_t buflen = 0, prevbuflen = 0, method_len, path_len, num_headers;
-                    ssize_t rret;
-
-                    int parse_ret = phr_parse_request(
-                        b,
-                        buflen,
-                        &method,
-                        &method_len,
-                        &path,
-                        &path_len,
-                        &minor_version,
-                        &headers,
-                        &num_headers,
-                        prevbuflen
-                    );
-                    if(parse_ret < 0){
-                        // request is too long, or something went bad
-                        // -1 = went bad
-                        // -2 = too long
-                        printf("err: %d\n", parse_ret);
-                        close(current_handler->events[i].data.fd);
-                        continue;
-                    }
-
-                    if(strncmp(req->method, "post", 5) == 0){
-                        req->parsed_body = cJSON_ParseWithLength(
-                            req->body,
-                            req->body_len
-                        );
-                    }*/
-
-
-                    /*http_response *res = build_response(
-                        current_handler->events[i].data.fd
-                    );
-
-                    struct epoll_event add_write_event;
-                    add_write_event.events = EPOLLOUT;
-                    add_write_event.data.ptr = res;*/
-
-                    /*
-                        on the same file descriptor we can attach everything, we can also listen to changes on a certain
-                        data structure!
-                        that's what we did with the "ptr" attribute of the epoll_event:
-                        we put our response there so, when there is data being written on that data structure, the epoll will trigger
-                        a new event!
-                        we will write data as soon as we process the request, so the epoll will trigger instantly.
-
-                        this method makes us able to write the response chunk by chunk (check (**) down below), without blocking other requests in the loop!
-                    */
-
-                    /*if (epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_MOD, current_handler->events[i].data.fd, &add_write_event) < 0)
-                    {
-                        perror("cannot set epoll descriptor ready for writing\n");
-                        continue;
-                    }*/
-                    close(current_handler->events[i].data.fd);
-
-                }else{
-
-                    /*
-                        something bad happened to our client, let's ignore its request
-                    */
-                    epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_DEL, current_handler->events[i].data.fd, NULL);
-                    close(current_handler->events[i].data.fd);
-                }
                 
+                http_request* req = malloc(sizeof(http_request));
+                http_request_init(
+                    req,
+                    method,
+                    method_len,
+                    path,
+                    path_len,
+                    headers,
+                    num_headers
+                );
+
+                printf("got request: %s %s\n", req->method, req->path);
+
+                http_response *res = build_response(ctx);
+
+                struct epoll_event add_write_event;
+                add_write_event.events = EPOLLOUT;
+                add_write_event.data.ptr = res;
+
+                /*
+                    on the same file descriptor we can attach everything, we can also listen to changes on a certain
+                    data structure!
+                    that's what we did with the "ptr" attribute of the epoll_event:
+                    we put our response there so, when there is data being written on that data structure, the epoll will trigger
+                    a new event!
+                    we will write data as soon as we process the request, so the epoll will trigger instantly.
+
+                    this method makes us able to write the response chunk by chunk (check (**) down below), without blocking other requests in the loop!
+                */
+
+                if (epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_MOD, current_handler->events[i].data.fd, &add_write_event) < 0){
+                    perror("cannot set epoll descriptor ready for writing\n");
+                    close(current_handler->events[i].data.fd);
+                    continue;
+                }
+
             }else if (events == EPOLLOUT){
 
                 /*
@@ -235,10 +179,11 @@ void *handler_process_request(void *h){
                     streamed_response->socket,
                     streamed_response->stringified + streamed_response->stream_ptr,
                     streamed_response->full_length,
-                    0);
+                    0
+                );
                 if (written_bytes >= 0){
                     streamed_response->stream_ptr += written_bytes; // here we update our pointer!
-                    if (streamed_response->stream_ptr == streamed_response->full_length){
+                    if (streamed_response->stream_ptr >= streamed_response->full_length){
                         /*
                             we wrote everything, so we need to close the connection (only HTTP/1.1)
                         */
@@ -246,20 +191,19 @@ void *handler_process_request(void *h){
                         if (epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_DEL, streamed_response->socket, NULL) < 0){
                             perror("cannot close epoll fd\n");
                         }
+                        printf("response: %s\n", streamed_response->stringified);
                         close(streamed_response->socket);
                     }
-                }
-                else if (written_bytes == -1){
+                }else if (written_bytes == -1){
                     if (errno == EAGAIN || errno == EWOULDBLOCK){
                         // the socket is not available yet
                         continue;
                     }
                     else{
-                        perror("send failed");
+                        perror("send failed\n");
                     }
                 }
-            }
-            else{
+            }else{
                 /*
                     something bad happened to our client, let's ignore its request
                 */
