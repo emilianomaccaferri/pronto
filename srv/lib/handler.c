@@ -149,6 +149,9 @@ void *handler_process_request(void *h){
                     num_headers
                 );
 
+                printf("path: %s, %d\n", req->path, req->path_len);
+                printf("method: %s, %d\n", req->method, req->method_len);
+
                 if(
                     strcmp(req->method, "POST") == 0 
                     || strcmp(req->method, "post") == 0
@@ -161,14 +164,12 @@ void *handler_process_request(void *h){
                     bzero((void*) req->body, req->body_len);
                     strncpy((char*) req->body, ctx->data + parse_result, req->body_len);
                     req->json_body = cJSON_ParseWithLengthOpts(req->body, req->body_len, &parse_end, 1);
-                    printf("%s\n", parse_end);
-                    // https://github.com/DaveGamble/cJSON#thread-safety
-                    if(strcmp(parse_end, "}") != 0){ // } is the pointer to the end of the json body
+                    if(req->json_body == NULL)
                         is_bad_request = 1;
-                    }
                 }
 
                 http_response *res = build_response(ctx, is_bad_request);
+                
                 // http_request_destroy(req);
 
                 struct epoll_event add_write_event;
