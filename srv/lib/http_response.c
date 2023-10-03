@@ -10,12 +10,12 @@ static char* stringify_status(int status);
 
 void http_response_destroy(http_response* res){
     // free(res->body);
-    // free(res->headers);
-    // free(res->stringified);
+    free(res->headers);
+    free(res->stringified);
     free(res);
 }
 
-http_response* http_response_create(int status, char* headers, char* body, int socket_fd){
+http_response* http_response_create(int status, char* headers, char* body, int socket){
 
     /*
         status: the HTTP status
@@ -30,7 +30,7 @@ http_response* http_response_create(int status, char* headers, char* body, int s
     struct tm* gmt_time = gmtime(&now);
     strftime(date_buf, 255, "Date: %a, %d %b %Y %H:%M:%S %Z\n", gmt_time);
 
-    res->socket = socket_fd; // we need this for data-streaming purposes
+    res->socket = socket;
     res->stream_ptr = 0;
     res->content_length = strlen(body);
     res->date_header = date_buf;
@@ -96,8 +96,6 @@ char* stringify_status(int status){
             return "HTTP/1.1 400 Bad Request\n";
         case 404:
             return "HTTP/1.1 404 Not Found\n";
-        case 501:
-            return "HTTP/1.1 501 Not Implemented\n";
         default:
             return "HTTP/1.1 500 Internal Server Error\n";
     }
@@ -107,34 +105,27 @@ char* stringify_status(int status){
 http_response* http_response_bad_request(int socket_fd){
     
     return 
-        http_response_create(400, "", "<html><h1>400 - Bad Request </h1></html>", socket_fd);
-    
-}
-
-http_response* http_response_filename_too_long(int socket_fd){
-    
-    return 
-        http_response_create(413, "", "<html><h1>413 - Request filename is too long </h1></html>", socket_fd);
+        http_response_create(400, "Content-Type: application/json", "{\"success\": false, \"error\": \"bad_request\"}", socket_fd);
     
 }
 
 http_response* http_response_uninmplemented_method(int socket_fd){
     
     return 
-        http_response_create(501, "", "<html><h1>501 - Not Implemented </h1></html>", socket_fd);
+        http_response_create(501, "Content-Type: application/json", "{\"success\": false, \"error\": \"method_not_implemented\"}", socket_fd);
     
 }
 
 http_response* http_response_internal_server_error(int socket_fd){
     
     return 
-        http_response_create(500, "", "<html><h1>500 - Internal Server Error </h1></html>", socket_fd);
+        http_response_create(500, "Content-Type: application/json", "{\"success\": false, \"error\": \"internal_server_error\"}", socket_fd);
     
 }
 
 http_response* http_response_not_found(int socket_fd){
     
     return 
-        http_response_create(404, "", "<html><h1>404 - Not Found </h1></html>", socket_fd);
+        http_response_create(404, "Content-Type: application/json", "{\"success\": false, \"error\": \"not_found\"}", socket_fd);
     
 }

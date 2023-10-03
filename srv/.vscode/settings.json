@@ -11,6 +11,10 @@
         "connection_context.h": "c",
         "strings.h": "c",
         "picohttpparser.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "http_request.h": "c",
+        "string.h": "c",
+        "c_json.h": "c",
+        "stdio.h": "c"
     }
 }

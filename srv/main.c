@@ -1,9 +1,10 @@
 #define MAX_EVENTS 128
-#define NUM_HANDLERS 1 // how many threads handle epolls
+#define NUM_HANDLERS 4 // how many threads handle epolls
 #define PORT 8080
 #define MAX_EPOLL_HANDLER_QUEUE_SIZE 2048
 #define REQUEST_BUFFER_SIZE 32368 // HTTP request chunk is 32k
-#define MAX_REQUEST_SIZE 120000
+#define MAX_REQUEST_SIZE 122880
+#define MAX_BODY_SIZE 122880 // body is 128k too
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,7 +16,15 @@
 
 int main(void){
 
-    server* http_server = server_init(PORT, MAX_EVENTS, NUM_HANDLERS, MAX_EPOLL_HANDLER_QUEUE_SIZE, REQUEST_BUFFER_SIZE, MAX_REQUEST_SIZE);
+    server* http_server = server_init(
+        PORT, 
+        MAX_EVENTS, 
+        NUM_HANDLERS, 
+        MAX_EPOLL_HANDLER_QUEUE_SIZE, 
+        REQUEST_BUFFER_SIZE, 
+        MAX_REQUEST_SIZE,
+        MAX_BODY_SIZE
+    );
     printf("\nserver is now listening on localhost:%d\n", PORT);
 
     server_loop(http_server);

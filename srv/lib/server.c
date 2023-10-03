@@ -64,7 +64,8 @@ server* server_init(
         int num_handlers,
         int max_epoll_handler_queue_size,
         int request_buffer_size,
-        int max_request_size
+        int max_request_size,
+        int max_body_size
     ){
 
     /*
@@ -84,6 +85,7 @@ server* server_init(
     http_server->num_handlers = num_handlers;
     http_server->selector = 0;
     http_server->handlers = (handler *) malloc(sizeof(handler) * http_server->num_handlers);
+    http_server->max_body_size = max_body_size;
 
     printf("config:\n");
     printf("\t port: %d\n", port);
@@ -92,6 +94,7 @@ server* server_init(
     printf("\t max_epoll_handler_queue_size: %d\n", max_epoll_handler_queue_size);
     printf("\t request_buffer_size: %d\n", request_buffer_size);
     printf("\t max_request_size: %d\n", max_request_size);
+    printf("\t max_body_size: %d\n", max_body_size);
 
     if(http_server->epoll_fd < 0){
         perror("cannot create epoll\n");
@@ -113,7 +116,13 @@ server* server_init(
 
     /* initialize handlers */
     for(int i = 0; i < http_server->num_handlers; i++){
-        handler_init(&http_server->handlers[i], max_epoll_handler_queue_size, request_buffer_size, max_request_size);
+        handler_init(
+            &http_server->handlers[i], 
+            max_epoll_handler_queue_size, 
+            request_buffer_size, 
+            max_request_size,
+            max_body_size
+        );
     }
 
     return http_server;

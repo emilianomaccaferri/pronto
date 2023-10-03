@@ -1,9 +1,11 @@
 #include "h/utils.h"
+#include "h/picohttpparser.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <stddef.h>
 #include <unistd.h>
 
@@ -60,6 +62,28 @@ char** bytes_to_lines(char* bytes, size_t byte_len, int lines_num){
     }while ((part = strtok_r(NULL, "\n", &temp)) != NULL);
 
     return lines;
+
+}
+
+char* get_header(struct phr_header* headers, int len, char* wanted_header){
+
+    for(int i = 0; i < len; i++){
+        int name_len = (int) headers[i].name_len;
+        char header_name[name_len + 1];
+
+        strncpy(header_name, headers[i].name, name_len);
+        header_name[name_len] = 0; // terminate!
+        if(strcmp(header_name, wanted_header) == 0){
+            int value_len = (int) headers[i].value_len;
+            char* value = malloc(sizeof(char) * (value_len + 1));
+            bzero(value, value_len + 1);
+            strncpy(value, headers[i].value, value_len);
+
+            return value;
+        }
+    }
+
+    return NULL;
 
 }
 

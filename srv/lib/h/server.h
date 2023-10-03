@@ -21,6 +21,7 @@ typedef struct {
     int max_connection_events;
     int max_request_size;
     int num_handlers;
+    int max_body_size; // for POST requests
     int selector; // this will be the index of the last accessed handler
     struct epoll_event* connection_events;
     handler* handlers;
@@ -33,7 +34,8 @@ extern server* server_init(
     int num_handlers,
     int max_epoll_handler_queue_size,
     int request_buffer_size,
-    int max_request_size
+    int max_request_size,
+    int max_body_size
 );
 extern void server_loop(server* server);
 extern void server_on_connection(server* server);

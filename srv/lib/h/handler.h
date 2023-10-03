@@ -18,6 +18,7 @@ typedef struct {
         round robin through the set of ready file descriptors. (https://man7.org/linux/man-pages/man2/epoll_wait.2.html)
     */
     int max_request_size;
+    int max_body_size;
     int max_events; 
     int epoll_fd;
     int request_buffer_size;
@@ -28,4 +29,10 @@ typedef struct {
 
 } handler;
 
-void handler_init(handler* handler, int max_events, int buf_size, int max_request_size);
+void handler_init(
+    handler* handler, 
+    int max_events, 
+    int buf_size, 
+    int max_request_size,
+    int max_body_size
+);
