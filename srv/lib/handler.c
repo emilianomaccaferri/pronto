@@ -112,7 +112,7 @@ void *handler_process_request(void *h){
                     
                 }
 
-                ctx->data[ctx->length - 1] = 0;
+                ctx->data[ctx->length] = 0;
 
                 if(broken_request == 1){
                     epoll_ctl(current_handler->epoll_fd, EPOLL_CTL_DEL, current_handler->events[i].data.fd, NULL);
@@ -140,7 +140,20 @@ void *handler_process_request(void *h){
                     num_headers
                 );
 
-                printf("got request: %s %s\n", req->method, req->path);
+                if(
+                    strcmp(req->method, "POST") == 0 
+                    || strcmp(req->method, "post") == 0
+                ){
+                    // body starts at req_buffer + parse_result
+                    // https://github.com/h2o/picohttpparser/issues/59
+                    req->body_len = (strlen(ctx->data) - parse_result);
+                    req->body = malloc(sizeof(char) * req->body_len); // null-terminate
+                    bzero((void*) req->body, req->body_len);
+                    strncpy((char*) req->body, ctx->data + parse_result, req->body_len);
+                    req->json_body = cJSON_ParseWithLength(req->body, req->body_len);
+                    /*char* json = cJSON_Print(req->json_body);
+                    printf("%s\n", json);*/
+                }
 
                 http_response *res = build_response(ctx);
                 // http_request_destroy(req);

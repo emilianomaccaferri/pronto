@@ -7,7 +7,7 @@ typedef struct {
     const char* path;
     struct phr_header* headers;
     const char* body;
-    cJSON* parsed_body;
+    cJSON* json_body;
 
     size_t method_len;
     size_t path_len;

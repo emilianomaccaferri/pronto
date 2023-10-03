@@ -1,5 +1,6 @@
 #include "h/http_request.h"
 #include "h/picohttpparser.h"
+#include "h/c_json.h"
 #include <strings.h>
 #include <string.h>
 #include <stdlib.h>
@@ -17,6 +18,9 @@ void http_request_init(
     init->method_len = method_len; 
     init->path_len = path_len;
     init->num_headers = num_headers;
+    init->body = NULL;
+    init->body_len = 0;
+    init->json_body = NULL;
 
     // +1 => we need to terminate the string
     init->method = malloc(sizeof(char) * init->method_len) + 1;
