@@ -33,7 +33,8 @@ void build_response(
     }else{
         if(strcmp(req->path, "/schedule") == 0){
             // do the schedule
-                memcpy(res, http_response_create(
+            memcpy(
+                res, http_response_create(
                     200,
                     "Content-Type: application/json",
                     "{\"success\": true, \"hello\": [1,2,3,4]}",
@@ -62,7 +63,12 @@ void *handler_process_request(void *h){
 
     while (current_handler->active){
 
-        int ready_events = epoll_wait(current_handler->epoll_fd, current_handler->events, current_handler->max_events, -1);
+        int ready_events = epoll_wait(
+            current_handler->epoll_fd, 
+            current_handler->events, 
+            current_handler->max_events,
+            -1
+        );
         for (int i = 0; i < ready_events; i++){
 
             uint32_t events = current_handler->events[i].events;

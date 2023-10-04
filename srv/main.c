@@ -13,6 +13,8 @@
 #include <errno.h>
 #include "lib/h/utils.h"
 #include "lib/h/server.h"
+#include "lib/h/prio_queue.h"
+#include "lib/h/job.h"
 
 int main(void){
 
@@ -28,6 +30,15 @@ int main(void){
     printf("\nserver is now listening on localhost:%d\n", PORT);
 
     server_loop(http_server);
+   /*prio_queue* q = malloc(sizeof(prio_queue));
+    prio_queue_init(q);
+    for(int i = 10; i > 0; i--){
+        struct node_t* node = malloc(sizeof(struct node_t));
+        job* j = malloc(sizeof(job));
+        j->request = i;
+        node->value = j;
+        prio_queue_enqueue(q, node);
+    }*/
 
     return 0;
 
