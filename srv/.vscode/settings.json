@@ -15,6 +15,7 @@
         "http_request.h": "c",
         "string.h": "c",
         "c_json.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "cluster_worker.h": "c"
     }
 }

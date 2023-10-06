@@ -59,6 +59,7 @@ static int create_socket(short port){
 }
 
 server* server_init(
+        server* http_server,
         short port, 
         int max_events, 
         int num_handlers,
@@ -75,7 +76,6 @@ server* server_init(
         since this socket will support a single protocol, the "protocol" argument is set to 0.        
         
     */
-    server* http_server = (server *) malloc(sizeof(server));
 
     http_server->max_connection_events = max_events;
     http_server->socket_fd = create_socket(port);

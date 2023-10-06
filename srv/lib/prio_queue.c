@@ -38,7 +38,8 @@ void prio_queue_enqueue(prio_queue *list, struct node_t *el){
             // higher than any element: insert at bottom
             el->next = NULL;
             list->tail->next = el;
-            assert(list->tail->value == el->value);
+            list->tail = el;
+            assert(list->tail->value->request == el->value->request);
         }else{
             prev_of_curr_item->next = el;
             el->next = curr_item;  

@@ -29,6 +29,7 @@ typedef struct {
 } server;
 
 extern server* server_init(
+    server* s,
     short port, 
     int max_events, 
     int num_handlers,
