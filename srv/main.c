@@ -3,8 +3,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "h/config.h"
-#include "h/pronto.h"
+#include "lib/h/config.h"
+#include "lib/h/pronto.h"
 
 int main(void){
 

@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <stdlib.h>
 #include "h/pronto.h"
 #include "h/cluster_worker.h"
 #include "h/config.h"
@@ -24,9 +25,9 @@ void pronto_init(
     instance->workers = workers;
     instance->workers_instances = malloc(sizeof(cluster_worker) * instance->workers);
 
-    server* s = malloc(sizeof(server));
+    instance->http_server = malloc(sizeof(server));
     server_init(
-        s,
+        instance->http_server,
         PORT, 
         MAX_EVENTS, 
         NUM_HANDLERS, 
