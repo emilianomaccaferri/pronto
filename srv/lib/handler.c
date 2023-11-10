@@ -32,6 +32,18 @@ int test_route(http_request *req, http_response *res, int socket){
             );
     return 0;
 }
+int test_route_2(http_request *req, http_response *res, int socket){
+    memcpy(
+                res, http_response_create(
+                    200,
+                    "Content-Type: application/json",
+                    "{\"success\": true, \"hello!!\": [1,2,3,4]}",
+                    socket
+                ), 
+                sizeof(http_response)
+            );
+    return 0;
+}
 
 void build_response(
     handler* h,
@@ -71,6 +83,10 @@ void *handler_process_request(void *h){
     current_handler->request_buffer = buf;*/
 
     handler_route(h, "/test", test_route);
+    handler_route(h, "/another-test", test_route_2);
+    handler_route(h, "/should-404", test_route_2);
+
+    assert(current_handler->routes_idx <= MAX_ROUTES);
 
     while (current_handler->active){
 
@@ -359,8 +375,10 @@ int handler_route(
     handler_callback cb
 ){
 
-    if(h->routes_idx == MAX_ROUTES - 1)
+    if(h->routes_idx >= MAX_ROUTES){
+        printf("too many routes registered! ignoring %s\n", route_path);
         return -2; // no space left for routes!
+    }
     
     handler_route_t *new_route = calloc(1, sizeof(handler_route_t));
     if(new_route == NULL)
@@ -374,6 +392,7 @@ int handler_route(
     new_route->path = cpy_path;
 
     h->routes[h->routes_idx] = new_route;
+    h->routes_idx++;
 
     return 0;
 
@@ -381,7 +400,7 @@ int handler_route(
 
 handler_callback handler_route_search(handler* h, const char* path){
 
-    for(int i = 0; i < h->routes_idx + 1; i ++){
+    for(int i = 0; i < (h->routes_idx); i++){
         if(strcmp(h->routes[i]->path, path) == 0){
             return *(h->routes[i]->callback);
         }
