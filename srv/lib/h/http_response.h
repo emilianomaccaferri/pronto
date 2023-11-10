@@ -32,5 +32,6 @@ extern http_response* http_response_bad_request(int socket_fd);
 extern http_response* http_response_uninmplemented_method(int socket_fd);
 extern http_response* http_response_internal_server_error(int socket_fd);
 extern http_response* http_response_not_found(int socket_fd);
+extern http_response* http_response_not_allowed(int socket_fd);
 extern char* http_response_stringify(http_response* res);
 extern void http_response_destroy(http_response* res);

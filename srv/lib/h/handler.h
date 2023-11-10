@@ -13,9 +13,13 @@
 // function that will be called when a route is matched
 typedef int (*handler_callback)(http_request* req, http_response* res, int socket);
 typedef struct {
+    char* method;
     char* path;
     handler_callback callback;
 } handler_route_t;
+typedef enum {
+    GET, POST
+} http_method;
 
 typedef struct {
     
@@ -51,11 +55,15 @@ void handler_init(
 
 int handler_route(
     handler* handler,
+    http_method route_method,
     char* route_path,
     handler_callback cb
 );
 
 handler_callback handler_route_search(
     handler* handler,
-    const char* route_path
+    const char* route_method,
+    const char* route_path,
+    int* status
 );
+

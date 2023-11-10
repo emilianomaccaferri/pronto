@@ -24,6 +24,10 @@ int schedule(http_request *req, http_response *res, int socket){
     INTO_RESPONSE(res, "{\"success\": true, \"hello\": [1,2,3,4]}", 200, socket);
     return 0;
 }
+int schedule_get(http_request *req, http_response *res, int socket){
+    INTO_RESPONSE(res, "{\"success\": true, \"message\": \"got you fam\"}", 200, socket);
+    return 0;
+}
 
 void build_response(
     handler* h,
@@ -40,9 +44,13 @@ void build_response(
         // send bad request
         memcpy(res, http_response_bad_request(socket), sizeof(http_response));
     }else{
-        handler_callback route_callback = handler_route_search(h, req->path);
-        if(route_callback != NULL){
+        
+        int status = 0;
+        handler_callback route_callback = handler_route_search(h, req->method, req->path, &status);
+        if(status == 0 && route_callback != NULL){
             route_callback(req, res, socket);          
+        }else if (status == 1){
+            memcpy(res, http_response_not_allowed(socket), sizeof(http_response));
         }else{
             memcpy(res, http_response_not_found(socket), sizeof(http_response));
         }
@@ -62,7 +70,8 @@ void *handler_process_request(void *h){
     bzero(buf, current_handler->request_buffer_size);
     current_handler->request_buffer = buf;*/
 
-    handler_route(h, "/schedule", schedule);
+    handler_route(h, POST, "/schedule", schedule);
+    // handler_route(h, GET, "/schedule", schedule_get);
 
     assert(current_handler->routes_idx <= MAX_ROUTES);
 
@@ -349,6 +358,7 @@ void handler_init(
 
 int handler_route(
     handler* h,
+    http_method route_method,
     char* route_path,
     handler_callback cb
 ){
@@ -364,10 +374,21 @@ int handler_route(
 
     int route_path_len = strlen(route_path);
     char* cpy_path = calloc(route_path_len + 1, sizeof(char));
+    char* cpy_method;
+
     memcpy(cpy_path, route_path, route_path_len);
+
+    if(route_method == POST){
+        cpy_method = calloc(5, sizeof(char)); // POST\0
+        memcpy(cpy_method, "POST", 4);
+    }else if (route_method == GET){
+        cpy_method = calloc(4, sizeof(char)); // POST\0
+        memcpy(cpy_method, "GET", 3);
+    }
 
     new_route->callback = cb;
     new_route->path = cpy_path;
+    new_route->method = cpy_method;
 
     h->routes[h->routes_idx] = new_route;
     h->routes_idx++;
@@ -376,14 +397,20 @@ int handler_route(
 
 }
 
-handler_callback handler_route_search(handler* h, const char* path){
+handler_callback handler_route_search(handler* h, const char* method, const char* path, int* status){
 
+    *status = -1; // -1 = not found, 1 = 405 method not allowed, 0 = ok
     for(int i = 0; i < (h->routes_idx); i++){
         if(strcmp(h->routes[i]->path, path) == 0){
-            return *(h->routes[i]->callback);
+            if(strcmp(h->routes[i]->method, method) == 0){
+                *status = 0;
+                return (h->routes[i]->callback);
+            }else{
+                *status = 1;
+            }
         }
     }
-
+    
     return NULL;
 
 }

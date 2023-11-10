@@ -96,6 +96,8 @@ char* stringify_status(int status){
             return "HTTP/1.1 400 Bad Request\n";
         case 404:
             return "HTTP/1.1 404 Not Found\n";
+        case 405:
+            return "HTTP/1.1 405 Method Not Allowed\n";
         default:
             return "HTTP/1.1 500 Internal Server Error\n";
     }
@@ -127,5 +129,11 @@ http_response* http_response_not_found(int socket_fd){
     
     return 
         http_response_create(404, "Content-Type: application/json", "{\"success\": false, \"error\": \"not_found\"}", socket_fd);
+    
+}
+http_response* http_response_not_allowed(int socket_fd){
+    
+    return 
+        http_response_create(405, "Content-Type: application/json", "{\"success\": false, \"error\": \"method_not_allowed\"}", socket_fd);
     
 }
