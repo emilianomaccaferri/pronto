@@ -12,7 +12,8 @@
 
 */
 // function that will be called when a route is matched
-typedef int (*handler_callback)(http_request* req, http_response* res, int socket);
+struct handler;
+typedef int (*handler_callback)(struct handler* h, http_request* req, http_response* res, int socket);
 typedef struct {
     char* method;
     char* path;
@@ -22,7 +23,7 @@ typedef enum {
     GET, POST
 } http_method;
 
-struct handler{
+struct handler {
     
     /*
         every handler has a fixed-size epoll queue.
@@ -47,6 +48,7 @@ struct handler{
 
 };
 
+struct handler;
 void handler_init(
     struct pronto* instance,
     struct handler* handler, 

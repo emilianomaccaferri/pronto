@@ -9,6 +9,7 @@
 #include "h/pronto.h"
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/epoll.h>
 #include <strings.h>
 #include <sys/socket.h>
@@ -21,9 +22,35 @@
 #include <search.h>
 #include <stdlib.h>
 
-int schedule(http_request *req, http_response *res, int socket){
-    INTO_RESPONSE(res, "{\"success\": true, \"hello\": [1,2,3,4]}", 200, socket);
+int schedule(struct handler* h, http_request *req, http_response *res, int socket){
+    
+    if(!has_body(req)){
+        INTO_RESPONSE(res, "{\"success\": false, \"error\": \"bad_request\"}", 400, socket);
+        return 1;
+    }
+    cJSON *qty = cJSON_GetObjectItem(req->json_body, "qty");
+    
+    if(qty == NULL){
+        INTO_RESPONSE(res, "{\"success\": false, \"error\": \"qty is missing\"}", 400, socket);
+        return 1;
+    }
+    int into_qty = qty->valueint;
+    if(!pronto_is_schedulable(h->pronto, into_qty)){
+        INTO_RESPONSE(res, "{\"success\": false, \"error\": \"cannot schedule job (qty is too big for the cluster)\"}", 400, socket);
+        return 1;
+    }
+
+    // the job is schedulable, let's add it to the job queue!
+    pronto_add_job(h->pronto, into_qty);
+    printf("%p\n", &h->pronto->notify);
+    sem_post(&h->pronto->notify); // notify cluster workers!    
+
+    char *response;
+    asprintf(&response, "{\"success\": true, \"message\": \"%d\"}", into_qty);
+
+    INTO_RESPONSE(res, response, 200, socket);
     return 0;
+
 }
 
 void build_response(
@@ -45,7 +72,7 @@ void build_response(
         int status = 0;
         handler_callback route_callback = handler_route_search(h, req->method, req->path, &status);
         if(status == 0 && route_callback != NULL){
-            route_callback(req, res, socket);          
+            route_callback(h, req, res, socket);          
         }else if (status == 1){
             memcpy(res, http_response_not_allowed(socket), sizeof(http_response));
         }else{

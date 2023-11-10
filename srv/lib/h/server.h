@@ -28,6 +28,7 @@ typedef struct server {
     bool active;
 } server;
 
+struct pronto;
 extern struct server* server_init(
     struct pronto* instance,
     struct server* s,

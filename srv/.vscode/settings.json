@@ -18,6 +18,8 @@
         "stdio.h": "c",
         "cluster_worker.h": "c",
         "search.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "errno.h": "c",
+        "node.h": "c"
     }
 }

@@ -1,5 +1,7 @@
 #include "h/utils.h"
 #include "h/picohttpparser.h"
+#include "h/http_request.h"
+#include "h/http_response.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <errno.h>
@@ -8,6 +10,13 @@
 #include <strings.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <stdbool.h>
+
+bool has_body(http_request *req){
+
+    return (strcmp(req->method, "POST") == 0) && (req->json_body != NULL);
+
+}
 
 void make_nonblocking(int fd){
 
