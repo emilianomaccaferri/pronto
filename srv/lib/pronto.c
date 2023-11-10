@@ -4,12 +4,12 @@
 #include "h/cluster_worker.h"
 #include "h/config.h"
 
-void pronto_start_http(pronto* instance){
+void pronto_start_http(struct pronto* instance){
     server_loop(instance->http_server);
 }
 
 void pronto_init(
-    pronto* instance,
+    struct pronto* instance,
     int workers
 ){
 
@@ -23,10 +23,11 @@ void pronto_init(
     prio_queue_init(instance->job_queue);
 
     instance->workers = workers;
-    instance->workers_instances = malloc(sizeof(cluster_worker) * instance->workers);
+    instance->workers_instances = malloc(sizeof(struct cluster_worker) * instance->workers);
 
-    instance->http_server = malloc(sizeof(server));
+    instance->http_server = malloc(sizeof(struct server));
     server_init(
+        instance,
         instance->http_server,
         PORT, 
         MAX_EVENTS, 
@@ -36,5 +37,9 @@ void pronto_init(
         MAX_REQUEST_SIZE,
         MAX_BODY_SIZE
     );
+
+    /* initialize handlers */
+    // this MUST be done after the http_server has been initialized!
+    
 
 }

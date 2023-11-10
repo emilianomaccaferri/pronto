@@ -1,6 +1,7 @@
 #include "h/server.h"
 #include "h/handler.h"
 #include "h/utils.h"
+#include "h/pronto.h"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -58,8 +59,9 @@ static int create_socket(short port){
 
 }
 
-server* server_init(
-        server* http_server,
+struct server* server_init(
+        struct pronto *instance,
+        struct server *http_server,
         short port, 
         int max_events, 
         int num_handlers,
@@ -84,7 +86,7 @@ server* server_init(
     http_server->active = false;
     http_server->num_handlers = num_handlers;
     http_server->selector = 0;
-    http_server->handlers = (handler *) malloc(sizeof(handler) * http_server->num_handlers);
+    http_server->handlers = (struct handler *) malloc(sizeof(struct handler) * http_server->num_handlers);
     http_server->max_body_size = max_body_size;
 
     printf("config:\n");
@@ -114,9 +116,9 @@ server* server_init(
 
     }
 
-    /* initialize handlers */
     for(int i = 0; i < http_server->num_handlers; i++){
         handler_init(
+            instance,
             &http_server->handlers[i], 
             max_epoll_handler_queue_size, 
             request_buffer_size, 
@@ -129,7 +131,7 @@ server* server_init(
 
 }
 
-void server_on_connection(server* server){
+void server_on_connection(struct server* server){
 
     /* 
         a new connection is being notified!
@@ -165,7 +167,7 @@ void server_on_connection(server* server){
     client_event.events = EPOLLIN | EPOLLET; // edge-triggered mode for the current descriptor (EAGAIN)
     client_event.data.fd = client_fd;
     printf("adding new request to handler %d\n", server->selector);
-    handler selected_handler = server->handlers[server->selector];
+    struct handler selected_handler = server->handlers[server->selector];
     server->selector = (server->selector + 1) % server->num_handlers;
 
     if(epoll_ctl(selected_handler.epoll_fd, EPOLL_CTL_ADD, client_fd, &client_event) < 0){ // adding a new epoll (EPOLL_CTL_ADD)
@@ -177,7 +179,7 @@ void server_on_connection(server* server){
 
 }
 
-void server_loop(server* server){
+void server_loop(struct server* server){
 
     server->active = true;
 

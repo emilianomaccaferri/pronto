@@ -6,6 +6,7 @@
 #include "h/connection_context.h"
 #include "h/utils.h"
 #include "h/config.h"
+#include "h/pronto.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
@@ -24,13 +25,9 @@ int schedule(http_request *req, http_response *res, int socket){
     INTO_RESPONSE(res, "{\"success\": true, \"hello\": [1,2,3,4]}", 200, socket);
     return 0;
 }
-int schedule_get(http_request *req, http_response *res, int socket){
-    INTO_RESPONSE(res, "{\"success\": true, \"message\": \"got you fam\"}", 200, socket);
-    return 0;
-}
 
 void build_response(
-    handler* h,
+    struct handler* h,
     http_response* res,
     http_request* req,
     int is_bad_request,
@@ -64,7 +61,7 @@ void build_response(
 
 void *handler_process_request(void *h){
 
-    handler *current_handler = (handler *)h;
+    struct handler *current_handler = (struct handler *)h;
     // let's keep the request buffer on the stack so it's faster to be read from
     /*char buf[current_handler->request_buffer_size];
     bzero(buf, current_handler->request_buffer_size);
@@ -330,13 +327,15 @@ void *handler_process_request(void *h){
 }
 
 void handler_init(
-    handler *handler, 
+    struct pronto* instance,
+    struct handler *handler, 
     int max_events, 
     int buf_size, 
     int max_request_size,
     int max_body_size
 ){
 
+    handler->pronto = instance;
     handler->thread = (pthread_t *)malloc(sizeof(pthread_t));
     handler->active = true;
     handler->max_events = max_events;
@@ -357,7 +356,7 @@ void handler_init(
 }
 
 int handler_route(
-    handler* h,
+    struct handler* h,
     http_method route_method,
     char* route_path,
     handler_callback cb
@@ -397,7 +396,7 @@ int handler_route(
 
 }
 
-handler_callback handler_route_search(handler* h, const char* method, const char* path, int* status){
+handler_callback handler_route_search(struct handler* h, const char* method, const char* path, int* status){
 
     *status = -1; // -1 = not found, 1 = 405 method not allowed, 0 = ok
     for(int i = 0; i < (h->routes_idx); i++){

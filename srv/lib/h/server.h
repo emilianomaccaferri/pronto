@@ -1,14 +1,14 @@
 #pragma once
-#include "handler.h"
 #include <stdbool.h>
-
+#include "pronto.h"
+#include "handler.h"
 /*
     the server is the core of the program.
     this module will accept requests from connecting clients and will dispatch
     them to certain handlers.
 */
 
-typedef struct {
+typedef struct server {
     int socket_fd;
     int epoll_fd;
     short port;
@@ -24,12 +24,13 @@ typedef struct {
     int max_body_size; // for POST requests
     int selector; // this will be the index of the last accessed handler
     struct epoll_event* connection_events;
-    handler* handlers;
+    struct handler* handlers;
     bool active;
 } server;
 
-extern server* server_init(
-    server* s,
+extern struct server* server_init(
+    struct pronto* instance,
+    struct server* s,
     short port, 
     int max_events, 
     int num_handlers,
@@ -38,5 +39,5 @@ extern server* server_init(
     int max_request_size,
     int max_body_size
 );
-extern void server_loop(server* server);
-extern void server_on_connection(server* server);
+extern void server_loop(struct server* server);
+extern void server_on_connection(struct server* server);

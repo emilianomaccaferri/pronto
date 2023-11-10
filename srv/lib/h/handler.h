@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "http_request.h"
 #include "http_response.h"
+#include "pronto.h"
 
 /*
     the handler will process every request it gets from the main thread (i.e the server).
@@ -21,7 +22,7 @@ typedef enum {
     GET, POST
 } http_method;
 
-typedef struct {
+struct handler{
     
     /*
         every handler has a fixed-size epoll queue.
@@ -29,6 +30,7 @@ typedef struct {
         epoll_wait() is called, then successive epoll_wait() calls will
         round robin through the set of ready file descriptors. (https://man7.org/linux/man-pages/man2/epoll_wait.2.html)
     */
+    struct pronto* pronto; // this is needed because every handler needs to access the internal mutex
     int max_request_size;
     int max_body_size;
     int max_events; 
@@ -43,10 +45,11 @@ typedef struct {
     bool active;
 
 
-} handler;
+};
 
 void handler_init(
-    handler* handler, 
+    struct pronto* instance,
+    struct handler* handler, 
     int max_events, 
     int buf_size, 
     int max_request_size,
@@ -54,14 +57,14 @@ void handler_init(
 );
 
 int handler_route(
-    handler* handler,
+    struct handler* handler,
     http_method route_method,
     char* route_path,
     handler_callback cb
 );
 
 handler_callback handler_route_search(
-    handler* handler,
+    struct handler* handler,
     const char* route_method,
     const char* route_path,
     int* status

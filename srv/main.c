@@ -8,7 +8,7 @@
 
 int main(void){
 
-    pronto* pronto_instance = malloc(sizeof(pronto));
+    struct pronto* pronto_instance = malloc(sizeof(struct pronto));
     pronto_init(
         pronto_instance,
         CLUSTER_WORKERS
