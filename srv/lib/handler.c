@@ -20,28 +20,8 @@
 #include <search.h>
 #include <stdlib.h>
 
-int test_route(http_request *req, http_response *res, int socket){
-    memcpy(
-                res, http_response_create(
-                    200,
-                    "Content-Type: application/json",
-                    "{\"success\": true, \"hello\": [1,2,3,4]}",
-                    socket
-                ), 
-                sizeof(http_response)
-            );
-    return 0;
-}
-int test_route_2(http_request *req, http_response *res, int socket){
-    memcpy(
-                res, http_response_create(
-                    200,
-                    "Content-Type: application/json",
-                    "{\"success\": true, \"hello!!\": [1,2,3,4]}",
-                    socket
-                ), 
-                sizeof(http_response)
-            );
+int schedule(http_request *req, http_response *res, int socket){
+    INTO_RESPONSE(res, "{\"success\": true, \"hello\": [1,2,3,4]}", 200, socket);
     return 0;
 }
 
@@ -82,9 +62,7 @@ void *handler_process_request(void *h){
     bzero(buf, current_handler->request_buffer_size);
     current_handler->request_buffer = buf;*/
 
-    handler_route(h, "/test", test_route);
-    handler_route(h, "/another-test", test_route_2);
-    handler_route(h, "/should-404", test_route_2);
+    handler_route(h, "/schedule", schedule);
 
     assert(current_handler->routes_idx <= MAX_ROUTES);
 

@@ -8,4 +8,4 @@
 #define MAX_REQUEST_SIZE 122880
 #define MAX_BODY_SIZE 122880 // body is 128k too
 #define CLUSTER_WORKERS 4
-#define MAX_ROUTES 2 // how many routes can the server serve
+#define MAX_ROUTES 30 // how many routes can the server serve
