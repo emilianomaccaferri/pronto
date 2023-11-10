@@ -1,9 +1,11 @@
+#define _GNU_SOURCE
 #include "h/handler.h"
 #include "h/http_response.h"
 #include "h/http_request.h"
 #include "h/picohttpparser.h"
 #include "h/connection_context.h"
 #include "h/utils.h"
+#include "h/config.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
@@ -15,9 +17,24 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <search.h>
 #include <stdlib.h>
 
+int test_route(http_request *req, http_response *res, int socket){
+    memcpy(
+                res, http_response_create(
+                    200,
+                    "Content-Type: application/json",
+                    "{\"success\": true, \"hello\": [1,2,3,4]}",
+                    socket
+                ), 
+                sizeof(http_response)
+            );
+    return 0;
+}
+
 void build_response(
+    handler* h,
     http_response* res,
     http_request* req,
     int is_bad_request,
@@ -31,17 +48,9 @@ void build_response(
         // send bad request
         memcpy(res, http_response_bad_request(socket), sizeof(http_response));
     }else{
-        if(strcmp(req->path, "/schedule") == 0){
-            // do the schedule
-            memcpy(
-                res, http_response_create(
-                    200,
-                    "Content-Type: application/json",
-                    "{\"success\": true, \"hello\": [1,2,3,4]}",
-                    socket
-                ), 
-                sizeof(http_response)
-            );
+        handler_callback route_callback = handler_route_search(h, req->path);
+        if(route_callback != NULL){
+            route_callback(req, res, socket);          
         }else{
             memcpy(res, http_response_not_found(socket), sizeof(http_response));
         }
@@ -60,6 +69,8 @@ void *handler_process_request(void *h){
     /*char buf[current_handler->request_buffer_size];
     bzero(buf, current_handler->request_buffer_size);
     current_handler->request_buffer = buf;*/
+
+    handler_route(h, "/test", test_route);
 
     while (current_handler->active){
 
@@ -168,15 +179,15 @@ void *handler_process_request(void *h){
                         ){
                             // drain the request because we need the body
                             with_body = 1;
-                            continue; // skip the parsing!
-                        }
+                        } 
+                        break; // parsing ended
                     }
                     else if (request_length == -1){
                         broken_request = 1;
                         break;
                     }
                     if(request_length != -2){
-                        printf("BUG_ON: parse_result is not -2 while request is being processed");
+                        printf("BUG_ON: parse_result is not -2 while request is being processed\n");
                         broken_request = 1;
                         break;
                     }
@@ -228,7 +239,7 @@ void *handler_process_request(void *h){
                 // THE PARSING OF THE REQUEST IS COMPLETE (finally)
                 // we have to create a response based on the request!
                 http_response *res = malloc(sizeof(http_response));
-                build_response(res, &incoming_req, is_bad_request, current_handler->events[i].data.fd);
+                build_response(current_handler, res, &incoming_req, is_bad_request, current_handler->events[i].data.fd);
                 /*
                     we are ready to stream the response to the socket! 
                     to actually stream something we need to save the socket's fd (check comment 1 in h/http_response.h)
@@ -331,11 +342,51 @@ void handler_init(
     handler->max_body_size = max_body_size;
     handler->max_request_size = max_request_size;
     handler->events = malloc(sizeof(struct epoll_event) * max_events);
+    handler->routes = calloc(MAX_ROUTES, sizeof(handler_route_t)); // 30 routes maximum
+    handler->routes_idx = 0; // starting index for placing routes
 
     printf("handler config:\n");
     printf("\t request_buffer_size: %d\n", handler->request_buffer_size);
     printf("\t max_body_size: %d\n", handler->max_body_size);
 
     pthread_create(handler->thread, NULL, handler_process_request, (void *)handler);
+
+}
+
+int handler_route(
+    handler* h,
+    char* route_path,
+    handler_callback cb
+){
+
+    if(h->routes_idx == MAX_ROUTES - 1)
+        return -2; // no space left for routes!
+    
+    handler_route_t *new_route = calloc(1, sizeof(handler_route_t));
+    if(new_route == NULL)
+        return -1;
+
+    int route_path_len = strlen(route_path);
+    char* cpy_path = calloc(route_path_len + 1, sizeof(char));
+    memcpy(cpy_path, route_path, route_path_len);
+
+    new_route->callback = cb;
+    new_route->path = cpy_path;
+
+    h->routes[h->routes_idx] = new_route;
+
+    return 0;
+
+}
+
+handler_callback handler_route_search(handler* h, const char* path){
+
+    for(int i = 0; i < h->routes_idx + 1; i ++){
+        if(strcmp(h->routes[i]->path, path) == 0){
+            return *(h->routes[i]->callback);
+        }
+    }
+
+    return NULL;
 
 }

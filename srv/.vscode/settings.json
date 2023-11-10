@@ -16,6 +16,8 @@
         "string.h": "c",
         "c_json.h": "c",
         "stdio.h": "c",
-        "cluster_worker.h": "c"
+        "cluster_worker.h": "c",
+        "search.h": "c",
+        "stdbool.h": "c"
     }
 }
