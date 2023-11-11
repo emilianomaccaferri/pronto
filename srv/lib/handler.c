@@ -40,9 +40,8 @@ int schedule(struct handler** h, http_request *req, http_response *res, int sock
         return 1;
     }
 
-    // the job is schedulable, let's add it to the job queue!
-    pronto_add_job((*h)->pronto, into_qty);
-    sem_post(&(*h)->pronto->notify); // notify cluster workers!    
+    pronto_add_job((*h)->pronto, into_qty); // the job is schedulable, let's add it to the job queue
+    sem_post(&(*h)->pronto->notify); // notify scheduler thread  
     char *response;
     asprintf(&response, "{\"success\": true, \"message\": \"%d\"}", into_qty);
 
@@ -352,7 +351,7 @@ void *handler_process_request(void *h){
 }
 
 void handler_init(
-    struct pronto* instance,
+    struct pronto *instance,
     struct handler *handler, 
     int max_events, 
     int buf_size, 

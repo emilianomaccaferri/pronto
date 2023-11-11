@@ -11,7 +11,8 @@ int main(void){
     struct pronto* pronto_instance = malloc(sizeof(struct pronto));
     pronto_init(
         pronto_instance,
-        CLUSTER_WORKERS
+        CLUSTER_WORKERS,
+        NUM_SCHEDULERS
     );
     pronto_start_http(pronto_instance);
 }

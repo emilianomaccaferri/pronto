@@ -20,6 +20,12 @@
         "search.h": "c",
         "stdbool.h": "c",
         "errno.h": "c",
-        "node.h": "c"
+        "node.h": "c",
+        "pthread.h": "c",
+        "config.h": "c",
+        "scheduler_worker.h": "c",
+        "pronto.h": "c",
+        "semaphore.h": "c",
+        "prio_queue.h": "c"
     }
 }

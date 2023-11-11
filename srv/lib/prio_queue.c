@@ -53,9 +53,9 @@ void prio_queue_enqueue(prio_queue *list, struct node_t *el){
 
 }
 
-void prio_queue_fifo_dequeue(prio_queue *list){
+struct node_t* prio_queue_fifo_dequeue(prio_queue *list){
 
-    if(list->size == 0) return;
+    if(list->size == 0) return NULL;
 
     struct node_t *old_head = list->head;
 
@@ -64,6 +64,6 @@ void prio_queue_fifo_dequeue(prio_queue *list){
     
     if(list->head == NULL) list->tail = NULL;
 
-    free(old_head); 
+    return old_head;
 
 }

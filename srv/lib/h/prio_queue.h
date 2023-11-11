@@ -8,4 +8,4 @@ typedef struct {
 
 extern void prio_queue_init(prio_queue *q);
 extern void prio_queue_enqueue(prio_queue *q, struct node_t *el); 
-extern void prio_queue_fifo_dequeue(prio_queue *q);
+extern struct node_t* prio_queue_fifo_dequeue(prio_queue *q);
