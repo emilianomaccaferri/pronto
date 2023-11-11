@@ -13,7 +13,7 @@
 */
 // function that will be called when a route is matched
 struct handler;
-typedef int (*handler_callback)(struct handler* h, http_request* req, http_response* res, int socket);
+typedef int (*handler_callback)(struct handler** h, http_request* req, http_response* res, int socket);
 typedef struct {
     char* method;
     char* path;

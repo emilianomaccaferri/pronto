@@ -2,6 +2,15 @@
     "files.associations": {
         "*.twig": "html",
         "connection_context.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "pronto.h": "c",
+        "stdbool.h": "c",
+        "server.h": "c",
+        "http_request.h": "c",
+        "handler.h": "c",
+        "picohttpparser.h": "c",
+        "stddef.h": "c",
+        "random": "c",
+        "numbers": "c"
     }
 }

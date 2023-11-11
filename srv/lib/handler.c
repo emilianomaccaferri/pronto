@@ -22,7 +22,7 @@
 #include <search.h>
 #include <stdlib.h>
 
-int schedule(struct handler* h, http_request *req, http_response *res, int socket){
+int schedule(struct handler** h, http_request *req, http_response *res, int socket){
     
     if(!has_body(req)){
         INTO_RESPONSE(res, "{\"success\": false, \"error\": \"bad_request\"}", 400, socket);
@@ -35,16 +35,14 @@ int schedule(struct handler* h, http_request *req, http_response *res, int socke
         return 1;
     }
     int into_qty = qty->valueint;
-    if(!pronto_is_schedulable(h->pronto, into_qty)){
+    if(!pronto_is_schedulable((*h)->pronto, into_qty)){
         INTO_RESPONSE(res, "{\"success\": false, \"error\": \"cannot schedule job (qty is too big for the cluster)\"}", 400, socket);
         return 1;
     }
 
     // the job is schedulable, let's add it to the job queue!
-    pronto_add_job(h->pronto, into_qty);
-    printf("%p\n", &h->pronto->notify);
-    sem_post(&h->pronto->notify); // notify cluster workers!    
-
+    pronto_add_job((*h)->pronto, into_qty);
+    sem_post(&(*h)->pronto->notify); // notify cluster workers!    
     char *response;
     asprintf(&response, "{\"success\": true, \"message\": \"%d\"}", into_qty);
 
@@ -68,11 +66,10 @@ void build_response(
         // send bad request
         memcpy(res, http_response_bad_request(socket), sizeof(http_response));
     }else{
-        
         int status = 0;
         handler_callback route_callback = handler_route_search(h, req->method, req->path, &status);
         if(status == 0 && route_callback != NULL){
-            route_callback(h, req, res, socket);          
+            route_callback(&h, req, res, socket);  
         }else if (status == 1){
             memcpy(res, http_response_not_allowed(socket), sizeof(http_response));
         }else{
@@ -267,6 +264,7 @@ void *handler_process_request(void *h){
                 // we have to create a response based on the request!
                 http_response *res = malloc(sizeof(http_response));
                 build_response(current_handler, res, &incoming_req, is_bad_request, current_handler->events[i].data.fd);
+
                 /*
                     we are ready to stream the response to the socket! 
                     to actually stream something we need to save the socket's fd (check comment 1 in h/http_response.h)
