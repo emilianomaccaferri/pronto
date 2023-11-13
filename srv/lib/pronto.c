@@ -25,7 +25,10 @@ void pronto_init(
     sem_init(&instance->notify, 0, 0);
 
     instance->job_queue = malloc(sizeof(prio_queue));
+    instance->waiting_queue = malloc(sizeof(prio_queue));
+
     prio_queue_init(instance->job_queue);
+    prio_queue_init(instance->waiting_queue);
 
     instance->total_capacity = 0;
     instance->schedulers = schedulers;
@@ -44,7 +47,7 @@ void pronto_init(
         cluster_worker_init(&instance->workers_instances[i], instance);
         instance->total_capacity += instance->workers_instances[i].max_resources; // this will be constant once set
     } 
-
+    instance->current_capacity = instance->total_capacity;
     server_init(
         instance,
         instance->http_server,
@@ -78,6 +81,9 @@ bool pronto_is_schedulable(struct pronto *p, int value){
 */
 int pronto_best_current_fit(struct pronto *p, unsigned int value){
     
+    if(p->current_capacity < value)
+        return -1;
+
     int capacity = -1;
     int worker_index = -1; 
     for(int i = 0; i < p->workers; i++){
@@ -102,9 +108,26 @@ void pronto_add_job(struct pronto *p, unsigned int value){
     node->value = j;
 
     pthread_mutex_lock(&p->queue_mutex);
-    
     prio_queue_enqueue(p->job_queue, node);
-
     pthread_mutex_unlock(&p->queue_mutex);
 
+}
+
+void pronto_add_waiting_job(struct pronto *p, unsigned int value){
+
+    struct node_t *node = calloc(1, sizeof(struct node_t));
+    job* j = calloc(1, sizeof(job));
+    j->request = value;
+    node->value = j;
+
+    pthread_mutex_lock(&p->waiting_queue_mutex);
+    prio_queue_enqueue(p->waiting_queue, node);
+    pthread_mutex_unlock(&p->waiting_queue_mutex);
+
+}
+
+void pronto_decrease_current_capacity(struct pronto *p, unsigned int value){
+    pthread_mutex_lock(&p->bookkeeper);
+    p->current_capacity -= value;
+    pthread_mutex_unlock(&p->bookkeeper);
 }

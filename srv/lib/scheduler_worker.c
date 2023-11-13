@@ -31,10 +31,13 @@ void *_scheduler_loop(void *s){
         }else{
             int b = pronto_best_current_fit(worker->pronto, node->value->request);
             if(b == -1){
-                // put in waiting queue
+                // put the job in waiting queue since no best fit has been found yet
+                pronto_add_waiting_job(worker->pronto, node->value->request);
             }else{
+                // best-fit found: time to schedule the task
                 struct cluster_worker* best_fit = &worker->pronto->workers_instances[b];
                 cluster_worker_add_job(best_fit, node->value->request);
+                pronto_decrease_current_capacity(worker->pronto, node->value->request);
                 sem_post(&best_fit->notify); // notify the worker (dispatch)
                 printf("[scheduler %ld]: scheduling on worker %d\n", pthread_self(), b); 
             }

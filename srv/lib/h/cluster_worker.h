@@ -16,6 +16,7 @@ struct cluster_worker {
     struct pronto *pronto;
     prio_queue* scheduler_jobs;  // this contains jobs that are scheduled by schedulers
     bool active;
+    char* endpoint;              // actual worker's address - the job is sent via HTTP to this address 
 };
 
 extern void cluster_worker_fetch(struct cluster_worker* cw);

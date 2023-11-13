@@ -31,6 +31,9 @@ void *_cluster_loop(void *cw){
     struct cluster_worker *worker = (struct cluster_worker *)cw;
     while(worker->active){
         sem_wait(&worker->notify);
+        pthread_mutex_lock(&worker->worker_mutex);
+        struct node_t* node = prio_queue_fifo_dequeue(worker->scheduler_jobs);
+        pthread_mutex_unlock(&worker->worker_mutex);
     }
 
     pthread_exit(0);
@@ -46,6 +49,8 @@ void cluster_worker_add_job(struct cluster_worker *cw, unsigned int value){
 
     pthread_mutex_lock(&cw->worker_mutex);
     prio_queue_enqueue(cw->scheduler_jobs, node);
+    cw->current_resources -= value;
+    cw->scheduled_jobs++;
     pthread_mutex_unlock(&cw->worker_mutex);
 
 }
