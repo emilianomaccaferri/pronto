@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include "h/pronto.h"
 #include "h/cluster_worker.h"
@@ -44,7 +45,12 @@ void pronto_init(
     }
     // initialize workers
     for(int i = 0; i < instance->workers; i++){
-        cluster_worker_init(&instance->workers_instances[i], instance);
+        cluster_worker_init(
+            &instance->workers_instances[i], 
+            instance,
+            i,
+            3000 // client port is 3000
+        );
         instance->total_capacity += instance->workers_instances[i].max_resources; // this will be constant once set
     } 
     instance->current_capacity = instance->total_capacity;
@@ -58,7 +64,9 @@ void pronto_init(
         REQUEST_BUFFER_SIZE, 
         MAX_REQUEST_SIZE,
         MAX_BODY_SIZE
-    );   
+    );  
+
+    fprintf(stdout, "cluster workers: %d\n", instance->workers);
 
 }
 

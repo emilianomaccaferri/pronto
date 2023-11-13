@@ -24,6 +24,7 @@ async fn main() {
         .with_state(AppState { client: http_client });
 
         let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+        println!("worker started");
         axum::Server::bind(&addr)
             .serve(app.into_make_service())
             .await
@@ -37,6 +38,7 @@ async fn job_received(
 ) -> (StatusCode, Json<Value>) {
 
     let state = s.clone();
+    println!("value: {body.value}, worker: ${body.worker}");
     thread::spawn(move || {
         thread::sleep(Duration::from_secs(body.value));
         let mut json_map = HashMap::new();
@@ -44,7 +46,7 @@ async fn job_received(
         json_map.insert("freed_qty", body.value as i32);
         
         match state.client
-            .post("http://api-server:3000")
+            .post("http://api-server:8080")
             .json(&json_map)
             .send() {
                 Err(e) => println!("err while requesting: {:?}", e),

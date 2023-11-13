@@ -1,6 +1,6 @@
 
 TARGET = bin/pronto-srv
-LIBS = -lm
+LIBS = -lm -lcurl -pthread
 CC = gcc
 CFLAGS = -g -Wall
 
@@ -18,7 +18,7 @@ HEADERS = $(wildcard *.h)
 .PRECIOUS: $(TARGET) $(OBJECTS)
 
 $(TARGET): $(OBJECTS)
-	$(CC) -pthread -g $(OBJECTS) -Wall $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(OBJECTS) -Wall $(LIBS) -o $@
 
 clean:
 	-rm -f lib/*.o

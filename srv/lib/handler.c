@@ -59,7 +59,7 @@ void build_response(
 ){
 
     if(req->json_body)
-        printf("%s\n", cJSON_Print(req->json_body));
+        fprintf(stdout, "%s\n", cJSON_Print(req->json_body));
     
     if(is_bad_request == 1){
         // send bad request
@@ -210,7 +210,7 @@ void *handler_process_request(void *h){
                         break;
                     }
                     if(request_length != -2){
-                        printf("BUG_ON: parse_result is not -2 while request is being processed\n");
+                        fprintf(stderr, "BUG_ON: parse_result is not -2 while request is being processed\n");
                         broken_request = 1;
                         break;
                     }
@@ -371,9 +371,9 @@ void handler_init(
     handler->routes = calloc(MAX_ROUTES, sizeof(handler_route_t)); // 30 routes maximum
     handler->routes_idx = 0; // starting index for placing routes
 
-    printf("handler config:\n");
-    printf("\t request_buffer_size: %d\n", handler->request_buffer_size);
-    printf("\t max_body_size: %d\n", handler->max_body_size);
+    fprintf(stdout, "handler config:\n");
+    fprintf(stdout, "\t request_buffer_size: %d\n", handler->request_buffer_size);
+    fprintf(stdout, "\t max_body_size: %d\n", handler->max_body_size);
 
     pthread_create(handler->thread, NULL, handler_process_request, (void *)handler);
 
@@ -387,7 +387,7 @@ int handler_route(
 ){
 
     if(h->routes_idx >= MAX_ROUTES){
-        printf("too many routes registered! ignoring %s\n", route_path);
+        fprintf(stdout, "too many routes registered! ignoring %s\n", route_path);
         return -2; // no space left for routes!
     }
     

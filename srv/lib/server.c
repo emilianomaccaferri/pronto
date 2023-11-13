@@ -89,14 +89,14 @@ struct server* server_init(
     http_server->handlers = (struct handler *) malloc(sizeof(struct handler) * http_server->num_handlers);
     http_server->max_body_size = max_body_size;
 
-    printf("config:\n");
-    printf("\t port: %d\n", port);
-    printf("\t max_connection_events: %d\n", max_events);
-    printf("\t handlers: %d\n", num_handlers);
-    printf("\t max_epoll_handler_queue_size: %d\n", max_epoll_handler_queue_size);
-    printf("\t request_buffer_size: %d\n", request_buffer_size);
-    printf("\t max_request_size: %d\n", max_request_size);
-    printf("\t max_body_size: %d\n", max_body_size);
+    fprintf(stdout, "config:\n");
+    fprintf(stdout, "\t port: %d\n", port);
+    fprintf(stdout, "\t max_connection_events: %d\n", max_events);
+    fprintf(stdout, "\t handlers: %d\n", num_handlers);
+    fprintf(stdout, "\t max_epoll_handler_queue_size: %d\n", max_epoll_handler_queue_size);
+    fprintf(stdout, "\t request_buffer_size: %d\n", request_buffer_size);
+    fprintf(stdout, "\t max_request_size: %d\n", max_request_size);
+    fprintf(stdout, "\t max_body_size: %d\n", max_body_size);
 
     if(http_server->epoll_fd < 0){
         perror("cannot create epoll\n");
@@ -166,7 +166,7 @@ void server_on_connection(struct server* server){
     
     client_event.events = EPOLLIN | EPOLLET; // edge-triggered mode for the current descriptor (EAGAIN)
     client_event.data.fd = client_fd;
-    printf("adding new request to handler %d\n", server->selector);
+    fprintf(stdout, "adding new request to handler %d\n", server->selector);
     struct handler selected_handler = server->handlers[server->selector];
     server->selector = (server->selector + 1) % server->num_handlers;
 

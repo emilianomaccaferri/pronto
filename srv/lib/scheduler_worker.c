@@ -27,7 +27,7 @@ void *_scheduler_loop(void *s){
         pthread_mutex_lock(&worker->pronto->queue_mutex);
         struct node_t* node = prio_queue_fifo_dequeue(worker->pronto->job_queue);
         if(node == NULL){
-            printf("bug: scheduler was notified but no job was placed in the queue\n");
+            fprintf(stdout, "bug: scheduler was notified but no job was placed in the queue\n");
         }else{
             int b = pronto_best_current_fit(worker->pronto, node->value->request);
             if(b == -1){
@@ -39,7 +39,7 @@ void *_scheduler_loop(void *s){
                 cluster_worker_add_job(best_fit, node->value->request);
                 pronto_decrease_current_capacity(worker->pronto, node->value->request);
                 sem_post(&best_fit->notify); // notify the worker (dispatch)
-                printf("[scheduler %ld]: scheduling on worker %d\n", pthread_self(), b); 
+                fprintf(stdout, "[scheduler %ld]: scheduling on worker %d\n", pthread_self(), b); 
             }
             // dequeue doesn't free
             free(node); 
