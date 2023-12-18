@@ -1,6 +1,7 @@
 use std::{net::SocketAddr, thread, io, time::Duration, collections::HashMap};
 
-use axum::{Router, routing::post, Json, http::StatusCode, Server, extract::State};
+use axum::{Router, routing::post, Json, http::StatusCode, Server, extract::State, debug_handler};
+use reqwest::header::CONTENT_LENGTH;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -17,7 +18,7 @@ struct AppState {
 #[tokio::main]
 async fn main() {
 
-    let http_client = reqwest::blocking::Client::new();
+    let http_client = reqwest::blocking::Client::builder().no_gzip().build().unwrap();
     
     let app = Router::new()
         .route("/", post(job_received))
@@ -38,7 +39,7 @@ async fn job_received(
 ) -> (StatusCode, Json<Value>) {
 
     let state = s.clone();
-    println!("value: {body.value}, worker: ${body.worker}");
+    println!("value: {}, worker: {}", body.value, body.worker);
     thread::spawn(move || {
         thread::sleep(Duration::from_secs(body.value));
         let mut json_map = HashMap::new();
@@ -46,7 +47,9 @@ async fn job_received(
         json_map.insert("freed_qty", body.value as i32);
         
         match state.client
-            .post("http://api-server:8080")
+            .post("http://localhost:8080/done")
+            .timeout(Duration::from_secs(1))
+            // .header(CONTENT_LENGTH, serde_json::to_string(&json_map).unwrap().len())
             .json(&json_map)
             .send() {
                 Err(e) => println!("err while requesting: {:?}", e),

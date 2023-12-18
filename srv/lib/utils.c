@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 bool has_body(http_request *req){
 
@@ -76,13 +77,22 @@ char** bytes_to_lines(char* bytes, size_t byte_len, int lines_num){
 
 char* get_header(struct phr_header* headers, int len, char* wanted_header){
 
+    int wanted_header_size = strlen(wanted_header);
+    char* wanted_header_clone = malloc(sizeof(char) * wanted_header_size);
+    bzero(wanted_header_clone, wanted_header_size);
+    memcpy(wanted_header_clone, wanted_header, wanted_header_size);
+
+    to_lowercase(wanted_header_clone, wanted_header_size);
+
     for(int i = 0; i < len; i++){
         int name_len = (int) headers[i].name_len;
         char header_name[name_len + 1];
 
         strncpy(header_name, headers[i].name, name_len);
         header_name[name_len] = 0; // terminate!
-        if(strcmp(header_name, wanted_header) == 0){
+        to_lowercase(header_name, name_len);
+        
+        if(strcmp(header_name, wanted_header_clone) == 0){
             int value_len = (int) headers[i].value_len;
             char* value = malloc(sizeof(char) * (value_len + 1));
             bzero(value, value_len + 1);
@@ -93,6 +103,14 @@ char* get_header(struct phr_header* headers, int len, char* wanted_header){
     }
 
     return NULL;
+
+}
+
+void to_lowercase(char* string, int len){
+
+    for(int i = 0; i < len; i++){
+        string[i] = tolower(string[i]);
+    }
 
 }
 

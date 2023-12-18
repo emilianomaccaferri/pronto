@@ -13,6 +13,7 @@ extern char* filename_to_extension(char* filename);
 extern char* read_whole_file(int fd);
 extern char* get_header(struct phr_header* headers, int len, char* wanted_header);
 extern bool has_body(http_request *req);
+extern void to_lowercase(char* string, int len);
 
 #define INTO_RESPONSE(res, b, status, s) ({ \
     memcpy( \

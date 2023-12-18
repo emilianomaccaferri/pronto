@@ -32,7 +32,7 @@ void cluster_worker_init(
     cw->worker_id = index;
     cw->curl = curl_easy_init();
     
-    asprintf(&cw->endpoint, "http://srv-%d:%d", cw->worker_id, port);
+    asprintf(&cw->endpoint, "http://localhost:3000", cw->worker_id, port);
     prio_queue_init(cw->scheduler_jobs);
     sem_init(&cw->notify, 0, 0);
 
@@ -71,16 +71,20 @@ void *_cluster_loop(void *cw){
             struct curl_slist *headers = NULL;
             headers = curl_slist_append(headers, "Expect:");
             headers = curl_slist_append(headers, "Content-Type: application/json");
+            headers = curl_slist_append(headers, "Connection: close"); // HTTP 1.1 please
 
             curl_easy_setopt(worker->curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(worker->curl, CURLOPT_URL, worker->endpoint);
             curl_easy_setopt(worker->curl, CURLOPT_POST, 1L);
             curl_easy_setopt(worker->curl, CURLOPT_VERBOSE, 1L);
             curl_easy_setopt(worker->curl, CURLOPT_POSTFIELDS, str_json);
+            fprintf(stdout, "done setting curl up!\n");
+
             res = curl_easy_perform(worker->curl);
 
             if(res != CURLE_OK){
                 fprintf(stderr, "err: failed to post data to worker!\n");
+                continue;
             }
 
             curl_slist_free_all(headers);

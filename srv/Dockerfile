@@ -3,6 +3,7 @@
 FROM ubuntu:latest as run
 WORKDIR /app
 COPY ./bin/pronto-srv /app
+RUN touch server.log
 RUN apt update
 RUN apt install -y curl
 

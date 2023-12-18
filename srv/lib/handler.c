@@ -22,6 +22,21 @@
 #include <search.h>
 #include <stdlib.h>
 
+int job_done(struct handler** h, http_request *req, http_response *res, int socket) {
+
+    char *response;
+    asprintf(&response, "{\"success\": true, \"message\": \"mega_pog\"}");
+
+    // pronto_check_for_schedulable
+    // this method will take jobs from the queue and will try to re-schedule jobs that are placed in the waiting queue.
+    // first, it will increase the current cluster capacity (and the freed worker capacity)  with the "freed_qty" received in this request
+    // and then it will take every job with schedulable request qty and schedule it on a given worker 
+
+    INTO_RESPONSE(res, response, 200, socket);
+    return 0;
+
+}
+
 int schedule(struct handler** h, http_request *req, http_response *res, int socket){
     
     if(!has_body(req)){
@@ -91,6 +106,7 @@ void *handler_process_request(void *h){
     current_handler->request_buffer = buf;*/
 
     handler_route(h, POST, "/schedule", schedule);
+    handler_route(h, POST, "/done", job_done);
     // handler_route(h, GET, "/schedule", schedule_get);
 
     assert(current_handler->routes_idx <= MAX_ROUTES);
@@ -239,6 +255,7 @@ void *handler_process_request(void *h){
                     );
                     if(str_content_length == NULL){
                         is_bad_request = 1;
+                        continue;
                     }
                     int content_length = atoi(str_content_length);
                     free(str_content_length);
@@ -256,6 +273,7 @@ void *handler_process_request(void *h){
                     );
                     if(incoming_req.json_body == NULL){
                         is_bad_request = 1;
+                        continue;
                     }
                 }
 
