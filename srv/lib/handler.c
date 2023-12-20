@@ -25,13 +25,38 @@
 int job_done(struct handler** h, http_request *req, http_response *res, int socket) {
 
     char *response;
-    asprintf(&response, "{\"success\": true, \"message\": \"mega_pog\"}");
+    
+    if(!has_body(req)){
+        INTO_RESPONSE(res, "{\"success\": false, \"error\": \"bad_request\"}", 400, socket);
+        return 1;
+    }
+    cJSON *freed_qty = cJSON_GetObjectItem(req->json_body, "freed_qty");
+    cJSON *worker_idx = cJSON_GetObjectItem(req->json_body, "worker");
+    
+    if(freed_qty == NULL){
+        INTO_RESPONSE(res, "{\"success\": false, \"error\": \"qty is missing\"}", 400, socket);
+        return 1;
+    }
+
+    if(worker_idx == NULL){
+        INTO_RESPONSE(res, "{\"success\": false, \"error\": \"worker is missing\"}", 400, socket);
+        return 1;
+    }
+
+    unsigned int int_qty = (unsigned int) freed_qty->valueint;
+    unsigned int int_worker = (unsigned int) freed_qty->valueint;
+
+    struct cluster_worker worker = (*h)->pronto->workers_instances[int_worker];
+
+    pronto_free_capacity((*h)->pronto, &worker, int_qty);
+    sem_post(&(*h)->pronto->reschedule);
 
     // pronto_check_for_schedulable
     // this method will take jobs from the queue and will try to re-schedule jobs that are placed in the waiting queue.
     // first, it will increase the current cluster capacity (and the freed worker capacity)  with the "freed_qty" received in this request
     // and then it will take every job with schedulable request qty and schedule it on a given worker 
 
+    asprintf(&response, "{\"success\": true, \"message\": \"freed %d from worker %d\"}", int_qty, int_worker);
     INTO_RESPONSE(res, response, 200, socket);
     return 0;
 

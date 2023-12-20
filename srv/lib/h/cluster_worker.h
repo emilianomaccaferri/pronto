@@ -27,3 +27,4 @@ struct cluster_worker {
 extern void cluster_worker_fetch(struct cluster_worker* cw);
 extern void cluster_worker_init(struct cluster_worker* cw, struct pronto* p, int index, short port);
 extern void cluster_worker_add_job(struct cluster_worker *cw, unsigned int value);
+extern void cluster_worker_free_job(struct cluster_worker *cw, unsigned int value);

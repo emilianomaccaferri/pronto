@@ -26,6 +26,8 @@
         "scheduler_worker.h": "c",
         "pronto.h": "c",
         "semaphore.h": "c",
-        "prio_queue.h": "c"
+        "prio_queue.h": "c",
+        "job.h": "c",
+        "rescheduler.h": "c"
     }
 }

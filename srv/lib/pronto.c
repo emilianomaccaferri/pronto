@@ -9,6 +9,7 @@
 #include "h/config.h"
 #include "h/node.h"
 #include "h/job.h"
+#include "h/rescheduler.h"
 
 void pronto_start_http(struct pronto* instance){
     server_loop(instance->http_server);
@@ -23,7 +24,10 @@ void pronto_init(
     pthread_mutexattr_t a;
     pthread_mutexattr_init(&a);
     pthread_mutex_init(&instance->queue_mutex, &a);
+    pthread_mutex_init(&instance->bookkeeper, &a);
+    pthread_mutex_init(&instance->waiting_queue_mutex, &a);
     sem_init(&instance->notify, 0, 0);
+    sem_init(&instance->reschedule, 0, 0);
 
     instance->job_queue = malloc(sizeof(prio_queue));
     instance->waiting_queue = malloc(sizeof(prio_queue));
@@ -36,6 +40,7 @@ void pronto_init(
     instance->workers = workers;
     instance->workers_instances = malloc(sizeof(struct cluster_worker) * instance->workers);
     instance->schedulers_instances = malloc(sizeof(struct scheduler_worker) * instance->schedulers);
+    instance->rescheduler = malloc(sizeof(struct rescheduler));
 
     instance->http_server = malloc(sizeof(struct server));
 
@@ -54,6 +59,10 @@ void pronto_init(
         instance->total_capacity += instance->workers_instances[i].max_resources; // this will be constant once set
     } 
     instance->current_capacity = instance->total_capacity;
+   
+   rescheduler_init(instance->rescheduler, instance);
+   fprintf(stdout, "rescheduler active\n");
+
     server_init(
         instance,
         instance->http_server,
@@ -89,19 +98,33 @@ bool pronto_is_schedulable(struct pronto *p, int value){
 */
 int pronto_best_current_fit(struct pronto *p, unsigned int value){
     
-    if(p->current_capacity < value)
+    // since this is decreased everytime a new job is scheduled, it might be possible
+    // that another scheduling is calling "pronto_decrease_current_capacity(worker->pronto, node->value->request)", which holds bookkeeper.
+    pthread_mutex_lock(&p->bookkeeper);
+    if(p->current_capacity < value){
+        pthread_mutex_unlock(&p->bookkeeper);
         return -1;
+    }
+    pthread_mutex_unlock(&p->bookkeeper);
+    
+
 
     int capacity = -1;
     int worker_index = -1; 
     for(int i = 0; i < p->workers; i++){
-        if(value <= p->workers_instances[i].current_resources){
-            int i_th_capacity = p->workers_instances[i].current_resources;
+        struct cluster_worker *worker = &p->workers_instances[i];
+        
+        // we need to lock on the worker's mutex because "cluster_worker_add_job"
+        // changes resources and holds this lock (because it changes the current_resources variable)
+        pthread_mutex_lock(&worker->worker_mutex);
+        if(value <= worker->current_resources){
+            int i_th_capacity = worker->current_resources;
             if(capacity < i_th_capacity){ // i need to find the leasy-busy worker
                 capacity = i_th_capacity; // the capacity cannot be < 0, so this works fine
                 worker_index = i;
             }
         }
+        pthread_mutex_unlock(&worker->worker_mutex);
     }
 
     return worker_index;
@@ -134,8 +157,50 @@ void pronto_add_waiting_job(struct pronto *p, unsigned int value){
 
 }
 
+void pronto_increase_current_capacity(struct pronto *p, unsigned int value){
+    pthread_mutex_lock(&p->bookkeeper);
+    p->current_capacity += value;
+    pthread_mutex_unlock(&p->bookkeeper);
+}
+
 void pronto_decrease_current_capacity(struct pronto *p, unsigned int value){
     pthread_mutex_lock(&p->bookkeeper);
     p->current_capacity -= value;
     pthread_mutex_unlock(&p->bookkeeper);
+}
+
+/*
+    this method atomically increases the worker's capacity AND the cluster capacity.
+    this way the changes are consistent in every other method.
+*/
+void pronto_free_capacity(struct pronto* p, struct cluster_worker* worker, unsigned int qty){
+
+    pthread_mutex_lock(&p->bookkeeper);
+    pthread_mutex_lock(&worker->worker_mutex);
+
+    p->current_capacity += qty;
+    worker->current_resources += qty;    
+    worker->scheduled_jobs--;
+
+    pthread_mutex_unlock(&worker->worker_mutex);
+    pthread_mutex_unlock(&p->bookkeeper);
+
+}
+
+/*
+    this method atomically decreases the worker's capacity AND the cluster capacity.
+    this way the changes are consistent in every other method.
+*/
+void pronto_reserve_capacity(struct pronto* p, struct cluster_worker* worker, unsigned int qty){
+
+    pthread_mutex_lock(&p->bookkeeper);
+    pthread_mutex_lock(&worker->worker_mutex);
+
+    p->current_capacity -= qty;
+    worker->current_resources -= qty;    
+    worker->scheduled_jobs++;
+
+    pthread_mutex_unlock(&worker->worker_mutex);
+    pthread_mutex_unlock(&p->bookkeeper);
+
 }
