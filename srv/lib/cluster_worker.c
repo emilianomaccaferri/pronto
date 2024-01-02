@@ -112,12 +112,3 @@ void cluster_worker_add_job(struct cluster_worker *cw, unsigned int value){
     pthread_mutex_unlock(&cw->worker_mutex);
 
 }
-
-void cluster_worker_free_job(struct cluster_worker *cw, unsigned int value){
-
-    pthread_mutex_lock(&cw->worker_mutex);
-    cw->current_resources += value;
-    cw->scheduled_jobs--;
-    pthread_mutex_unlock(&cw->worker_mutex);
-
-}

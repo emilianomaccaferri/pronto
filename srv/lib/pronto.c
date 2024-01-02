@@ -105,7 +105,6 @@ int pronto_best_current_fit(struct pronto *p, unsigned int value){
         pthread_mutex_unlock(&p->bookkeeper);
         return -1;
     }
-    pthread_mutex_unlock(&p->bookkeeper);
     
 
 
@@ -116,7 +115,7 @@ int pronto_best_current_fit(struct pronto *p, unsigned int value){
         
         // we need to lock on the worker's mutex because "cluster_worker_add_job"
         // changes resources and holds this lock (because it changes the current_resources variable)
-        pthread_mutex_lock(&worker->worker_mutex);
+        // pthread_mutex_lock(&worker->worker_mutex);
         if(value <= worker->current_resources){
             int i_th_capacity = worker->current_resources;
             if(capacity < i_th_capacity){ // i need to find the leasy-busy worker
@@ -124,8 +123,10 @@ int pronto_best_current_fit(struct pronto *p, unsigned int value){
                 worker_index = i;
             }
         }
-        pthread_mutex_unlock(&worker->worker_mutex);
+        // pthread_mutex_unlock(&worker->worker_mutex);
     }
+
+    pthread_mutex_unlock(&p->bookkeeper);
 
     return worker_index;
 
@@ -176,13 +177,13 @@ void pronto_decrease_current_capacity(struct pronto *p, unsigned int value){
 void pronto_free_capacity(struct pronto* p, struct cluster_worker* worker, unsigned int qty){
 
     pthread_mutex_lock(&p->bookkeeper);
-    pthread_mutex_lock(&worker->worker_mutex);
+    // pthread_mutex_lock(&worker->worker_mutex);
 
     p->current_capacity += qty;
     worker->current_resources += qty;    
     worker->scheduled_jobs--;
 
-    pthread_mutex_unlock(&worker->worker_mutex);
+    // pthread_mutex_unlock(&worker->worker_mutex);
     pthread_mutex_unlock(&p->bookkeeper);
 
 }
@@ -194,13 +195,13 @@ void pronto_free_capacity(struct pronto* p, struct cluster_worker* worker, unsig
 void pronto_reserve_capacity(struct pronto* p, struct cluster_worker* worker, unsigned int qty){
 
     pthread_mutex_lock(&p->bookkeeper);
-    pthread_mutex_lock(&worker->worker_mutex);
+    // pthread_mutex_lock(&worker->worker_mutex);
 
     p->current_capacity -= qty;
     worker->current_resources -= qty;    
     worker->scheduled_jobs++;
 
-    pthread_mutex_unlock(&worker->worker_mutex);
+    // pthread_mutex_unlock(&worker->worker_mutex);
     pthread_mutex_unlock(&p->bookkeeper);
 
 }

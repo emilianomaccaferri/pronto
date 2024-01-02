@@ -30,7 +30,7 @@
         },*/
         {
             "name": "(gdb) Launch",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/bin/pronto-srv",
             "args": [],
