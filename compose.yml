@@ -5,29 +5,30 @@ networks:
     name: pronto
 
 services:
-#  api-server:
-#    container_name: api-server
-#    build: 
-#      context: srv
-#      dockerfile: Dockerfile
-#    ports:
-#      - "7164:8080"
-#    networks:
-#      - pronto
-#    entrypoint: ["./pronto-srv"]
+  api-server:
+    container_name: api-server
+    build: 
+      context: srv
+      dockerfile: Dockerfile
+    ports:
+      - "7164:8080"
+    networks:
+      - pronto
+    entrypoint: ["sleep", "infinity"]
 
   srv-0:
     container_name: srv-0
     build: 
         context: client
         dockerfile: Dockerfile
-    network_mode: host
     entrypoint: ["./pronto-client"]
-  #srv-1:
-  #  container_name: srv-1
-  #  build: 
-  #      context: client
-  #      dockerfile: Dockerfile
-  #  networks:
-  #    - pronto
-  #  entrypoint: ["./pronto-client"]
+    networks:
+      - pronto
+  srv-1:
+    container_name: srv-1
+    build: 
+        context: client
+        dockerfile: Dockerfile
+    networks:
+      - pronto
+    entrypoint: ["./pronto-client"]

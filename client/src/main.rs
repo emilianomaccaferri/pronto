@@ -47,7 +47,7 @@ async fn job_received(
         json_map.insert("freed_qty", body.value as i32);
         
         match state.client
-            .post("http://localhost:8080/done")
+            .post("http://api-server:8080/done")
             .timeout(Duration::from_secs(1))
             // .header(CONTENT_LENGTH, serde_json::to_string(&json_map).unwrap().len())
             .json(&json_map)

@@ -31,7 +31,7 @@ void cluster_worker_init(
     cw->port = port;
     cw->worker_id = index;
     
-    asprintf(&cw->endpoint, "http://localhost:3000", cw->worker_id, port);
+    asprintf(&cw->endpoint, "http://srv-%d:3000", cw->worker_id);
     prio_queue_init(cw->scheduler_jobs);
     sem_init(&cw->notify, 0, 0);
 
@@ -47,10 +47,7 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
 void *_cluster_loop(void *cw){
 
     struct cluster_worker *worker = (struct cluster_worker *)cw;
-    char* worker_log_file;
-    asprintf(&worker_log_file, "worker-%d.log", worker->worker_id);
     fprintf(stdout, "cluster worker %d started\n", worker->worker_id);
-    FILE *wfd = fopen(worker_log_file, "w");
 
     while(worker->active){
         sem_wait(&worker->notify);
@@ -81,7 +78,6 @@ void *_cluster_loop(void *cw){
             headers = curl_slist_append(headers, "Content-Type: application/json");
             headers = curl_slist_append(headers, "Connection: close"); // HTTP 1.1 please
 
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, wfd);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
