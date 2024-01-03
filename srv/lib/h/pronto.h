@@ -38,4 +38,4 @@ extern int pronto_best_current_fit(struct pronto *p, unsigned int value);
 extern void pronto_decrease_current_capacity(struct pronto* p, unsigned int value);
 extern void pronto_increase_current_capacity(struct pronto* p, unsigned int value);
 extern void pronto_reserve_capacity(struct pronto* p, struct cluster_worker*, unsigned int qty);
-extern void pronto_free_capacity(struct pronto* p, struct cluster_worker* worker, unsigned int qty);
+extern void pronto_free_capacity(struct pronto* p, struct cluster_worker** worker, unsigned int qty);

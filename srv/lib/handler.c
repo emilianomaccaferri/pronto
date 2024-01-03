@@ -44,17 +44,14 @@ int job_done(struct handler** h, http_request *req, http_response *res, int sock
     }
 
     unsigned int int_qty = (unsigned int) freed_qty->valueint;
-    unsigned int int_worker = (unsigned int) freed_qty->valueint;
+    unsigned int int_worker = (unsigned int) worker_idx->valueint;
 
-    struct cluster_worker worker = (*h)->pronto->workers_instances[int_worker];
+    struct cluster_worker *worker = &(*h)->pronto->workers_instances[int_worker];
 
+    printf("(before freeing) worker %d current capacity: %d\n", int_worker, worker->current_resources);
     pronto_free_capacity((*h)->pronto, &worker, int_qty);
+    printf("(after freeing) worker %d current capacity: %d\n", int_worker, worker->current_resources);
     sem_post(&(*h)->pronto->reschedule);
-
-    // pronto_check_for_schedulable
-    // this method will take jobs from the queue and will try to re-schedule jobs that are placed in the waiting queue.
-    // first, it will increase the current cluster capacity (and the freed worker capacity)  with the "freed_qty" received in this request
-    // and then it will take every job with schedulable request qty and schedule it on a given worker 
 
     asprintf(&response, "{\"success\": true, \"message\": \"freed %d from worker %d\"}", int_qty, int_worker);
     INTO_RESPONSE(res, response, 200, socket);

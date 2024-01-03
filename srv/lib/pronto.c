@@ -174,14 +174,14 @@ void pronto_decrease_current_capacity(struct pronto *p, unsigned int value){
     this method atomically increases the worker's capacity AND the cluster capacity.
     this way the changes are consistent in every other method.
 */
-void pronto_free_capacity(struct pronto* p, struct cluster_worker* worker, unsigned int qty){
+void pronto_free_capacity(struct pronto* p, struct cluster_worker** worker, unsigned int qty){
 
     pthread_mutex_lock(&p->bookkeeper);
     // pthread_mutex_lock(&worker->worker_mutex);
 
     p->current_capacity += qty;
-    worker->current_resources += qty;    
-    worker->scheduled_jobs--;
+    (*worker)->current_resources += qty;    
+    (*worker)->scheduled_jobs--;
 
     // pthread_mutex_unlock(&worker->worker_mutex);
     pthread_mutex_unlock(&p->bookkeeper);

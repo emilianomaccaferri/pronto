@@ -4,7 +4,7 @@
 #include <semaphore.h>
 #include "pronto.h"
 #include "prio_queue.h"
-#include <curl/curl.h>
+
 
 struct cluster_worker {
     pthread_mutex_t worker_mutex; // this is the mutex the *server* (and the worker itself) will acquire to edit 
@@ -20,8 +20,6 @@ struct cluster_worker {
     char* endpoint;              // actual worker's address - the job is sent via HTTP to this address 
     short port;                  // the remote port
     int worker_id;               // the worker id that will be used for the hostname
-    CURL *curl; 
-
 };
 
 extern void cluster_worker_fetch(struct cluster_worker* cw);
